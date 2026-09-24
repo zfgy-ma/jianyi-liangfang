@@ -433,6 +433,62 @@ body {
   stroke-width: 2.5;
 }
 
+.wall-line-drafted {
+  stroke: var(--warn);
+  stroke-width: 3;
+}
+
+.tool-button-active {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.room-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.room-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background: var(--surface-sunken);
+  border-radius: 6px;
+}
+
+.room-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.room-name,
+.room-note {
+  width: 100%;
+  padding: 7px 8px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.room-name {
+  font-weight: 600;
+}
+
+.room-area {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
 .wall-length {
   font-size: 11px;
   fill: var(--ink-soft);

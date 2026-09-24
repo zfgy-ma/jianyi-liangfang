@@ -10,6 +10,7 @@ interface PlanShapesProps {
   viewport: Viewport;
   activePointId: string | null;
   selectedWallId: string | null;
+  draftWallIds: string[];
   onPickPoint: (pointId: string) => void;
   onPickWall: (wallId: string) => void;
 }
@@ -19,9 +20,11 @@ export function PlanShapes({
   viewport,
   activePointId,
   selectedWallId,
+  draftWallIds,
   onPickPoint,
   onPickWall,
 }: PlanShapesProps) {
+  const draftIds = useMemo(() => new Set(draftWallIds), [draftWallIds]);
   const bodies = useMemo(() => buildWallBodies(project), [project]);
   const conflicts = useMemo(
     () => new Set(findWallConflicts(project).map((item) => item.wallId)),
@@ -68,6 +71,7 @@ export function PlanShapes({
               wall.isHelper ? 'wall-line-helper' : '',
               conflicts.has(wall.id) ? 'wall-line-conflict' : '',
               selectedWallId === wall.id ? 'wall-line-selected' : '',
+              draftIds.has(wall.id) ? 'wall-line-drafted' : '',
             ]
               .filter(Boolean)
               .join(' ')}

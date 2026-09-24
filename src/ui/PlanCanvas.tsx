@@ -16,6 +16,9 @@ export function PlanCanvas() {
   const selectedWallId = useProjectStore((state) => state.selectedWallId);
   const selectPoint = useProjectStore((state) => state.selectPoint);
   const selectWall = useProjectStore((state) => state.selectWall);
+  const roomPicking = useProjectStore((state) => state.roomPicking);
+  const roomDraft = useProjectStore((state) => state.roomDraft);
+  const toggleRoomWall = useProjectStore((state) => state.toggleRoomWall);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
@@ -128,7 +131,11 @@ export function PlanCanvas() {
           activePointId={activePointId}
           selectedWallId={selectedWallId}
           onPickPoint={(pointId) => selectPoint(pointId)}
-          onPickWall={(wallId) => selectWall(wallId)}
+          onPickWall={(wallId) => {
+            if (roomPicking) toggleRoomWall(wallId);
+            else selectWall(wallId);
+          }}
+          draftWallIds={roomDraft}
         />
       </svg>
       <div className="canvas-tools">

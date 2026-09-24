@@ -8,7 +8,8 @@ import {
 } from '../core/edit';
 import { commit, initHistory, redo, undo, type History } from '../core/history';
 import { locatePointOnWall } from '../core/locate';
-import { createOriginPoint, createProject, drawWall } from '../core/project';
+import { createOriginPoint, createProject, drawWall, nextId } from '../core/project';
+import { buildRoomPolygon } from '../core/room';
 import type { Direction, Project, WallKind } from '../core/types';
 
 export type InputMode = 'wall' | 'helper' | 'select';
@@ -25,6 +26,10 @@ export interface ProjectState {
   digits: string;
   tab: TabKey;
   startCorner: CornerKey;
+  /** 圈定区域时按顺序收集的墙 id */
+  roomDraft: string[];
+  roomMessage: string;
+  roomPicking: boolean;
   setTab: (tab: TabKey) => void;
   setMode: (mode: InputMode) => void;
   setStartCorner: (corner: CornerKey) => void;
@@ -45,6 +50,12 @@ export interface ProjectState {
   deleteWall: (wallId: string) => void;
   undo: () => void;
   redo: () => void;
+  toggleRoomWall: (wallId: string) => void;
+  clearRoomDraft: () => void;
+  finishRoom: () => void;
+  setRoomPicking: (active: boolean) => void;
+  updateRoom: (roomId: string, patch: { name?: string; note?: string }) => void;
+  deleteRoom: (roomId: string) => void;
 }
 
 /** 新工程开局：原点固定，起点角只影响录入提示 */
@@ -61,6 +72,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   digits: '',
   tab: 'plan',
   startCorner: 'SE',
+  roomDraft: [],
+  roomMessage: '',
+  roomPicking: false,
 
   setTab: (tab) => set({ tab }),
   setMode: (mode) => set({ mode, selectedWallId: null, direction: null, digits: '' }),
@@ -157,4 +171,70 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   undo: () => set((state) => ({ history: undo(state.history) })),
   redo: () => set((state) => ({ history: redo(state.history) })),
+
+  toggleRoomWall: (wallId) =>
+    set((state) => ({
+      roomDraft: state.roomDraft.includes(wallId)
+        ? state.roomDraft.filter((id) => id !== wallId)
+        : [...state.roomDraft, wallId],
+      roomMessage: '',
+    })),
+
+  clearRoomDraft: () => set({ roomDraft: [], roomMessage: '' }),
+
+  setRoomPicking: (active) =>
+    set({ roomPicking: active, roomDraft: [], roomMessage: '' }),
+
+  finishRoom: () => {
+    const state = get();
+    if (state.roomDraft.length < 3) {
+      set({ roomMessage: '至少要点选三段墙才能围成区域' });
+      return;
+    }
+    const draft = {
+      id: 'R000',
+      name: '待命名',
+      note: '',
+      boundaryWallIds: state.roomDraft,
+    };
+    if (!buildRoomPolygon(state.history.present, draft)) {
+      set({ roomMessage: '这些墙首尾接不上，拼不成闭合区域，请按顺序重选' });
+      return;
+    }
+    const roomId = nextId(state.history.present.rooms, 'R');
+    const count = Object.keys(state.history.present.rooms).length + 1;
+    const room = { ...draft, id: roomId, name: `房间${count}` };
+    const project = {
+      ...state.history.present,
+      rooms: { ...state.history.present.rooms, [roomId]: room },
+      updatedAt: new Date().toISOString(),
+    };
+    set({
+      history: commit(state.history, project),
+      roomDraft: [],
+      roomPicking: false,
+      roomMessage: `已生成 ${roomId}，面积可在下方查看`,
+    });
+  },
+
+  updateRoom: (roomId, patch) => {
+    const state = get();
+    const room = state.history.present.rooms[roomId];
+    if (!room) return;
+    const project = {
+      ...state.history.present,
+      rooms: { ...state.history.present.rooms, [roomId]: { ...room, ...patch } },
+      updatedAt: new Date().toISOString(),
+    };
+    set({ history: commit(state.history, project) });
+  },
+
+  deleteRoom: (roomId) => {
+    const state = get();
+    if (!state.history.present.rooms[roomId]) return;
+    const rooms = { ...state.history.present.rooms };
+    delete rooms[roomId];
+    const project = { ...state.history.present, rooms, updatedAt: new Date().toISOString() };
+    set({ history: commit(state.history, project), roomDraft: [], roomMessage: '区域已删除（可撤销）' });
+  },
 }));

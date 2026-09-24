@@ -5,6 +5,7 @@ import { FileMenu } from './ui/FileMenu';
 import { InputPanel } from './ui/InputPanel';
 import { InspectorPanel } from './ui/InspectorPanel';
 import { PlanCanvas } from './ui/PlanCanvas';
+import { RoomPanel } from './ui/RoomPanel';
 import { StatusBar } from './ui/StatusBar';
 
 export function App() {
@@ -31,6 +32,7 @@ export function App() {
         <PlanCanvas />
         <aside className="side-panel">
           <InputPanel />
+          <RoomPanel />
           <InspectorPanel />
         </aside>
       </main>
