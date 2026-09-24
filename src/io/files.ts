@@ -4,6 +4,7 @@ import {
   DEFAULT_WALL_HEIGHT,
 } from '../core/project';
 import type { Project } from '../core/types';
+import { buildProjectDxf } from './dxfSheets';
 
 /** 触发浏览器下载 */
 export function downloadText(fileName: string, content: string, mime: string): void {
@@ -47,4 +48,11 @@ export function projectFromJson(text: string): Project {
 export function exportProjectFile(project: Project): void {
   const date = new Date().toISOString().slice(0, 10);
   downloadText(`${project.name}-${date}.json`, projectToJson(project), 'application/json');
+}
+
+/** 导出 CAD 图纸：DXF，图纸空间分页 + A3 图框 */
+export function exportDxf(project: Project): void {
+  const { dxf } = buildProjectDxf(project);
+  const date = new Date().toISOString().slice(0, 10);
+  downloadText(`${project.name}-${date}.dxf`, dxf, 'application/dxf');
 }

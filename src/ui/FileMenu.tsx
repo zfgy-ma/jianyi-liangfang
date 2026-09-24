@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Project } from '../core/types';
-import { exportProjectFile, projectFromJson } from '../io/files';
+import { exportDxf, exportProjectFile, projectFromJson } from '../io/files';
 import { listProjects, loadProject } from '../io/storage';
 import { useProjectStore, type CornerKey } from '../store/useProjectStore';
 
@@ -101,6 +101,13 @@ export function FileMenu() {
           </div>
 
           <div className="file-section">
+            <button
+              type="button"
+              className="tool-button tool-button-strong"
+              onClick={() => exportDxf(project)}
+            >
+              导出 CAD 图纸（.dxf）
+            </button>
             <button
               type="button"
               className="tool-button"
