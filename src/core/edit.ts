@@ -85,8 +85,8 @@ export function flipWallOffsetSide(project: Project, wallId: string): Project {
 export function setWallKind(project: Project, wallId: string, kind: WallKind): Project {
   const wall = project.walls[wallId];
   if (!wall) return project;
-  const thickness =
-    kind === 'outer' ? project.outerThickness : project.innerThickness;
+  // 内墙不自动偏移：切成内墙时厚度归零，等实测出厚度再手动生成第二条线
+  const thickness = kind === 'outer' ? project.outerThickness : 0;
   return {
     ...project,
     walls: { ...project.walls, [wallId]: { ...wall, kind, thickness } },

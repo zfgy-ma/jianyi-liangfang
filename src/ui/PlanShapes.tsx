@@ -3,6 +3,7 @@ import { lengthBetween } from '../core/geometry';
 import type { Project } from '../core/types';
 import { findWallConflicts } from '../core/validate';
 import { buildWallBodies } from '../core/wallOffset';
+import { PlanOpenings } from './PlanOpenings';
 import { toScreen, type Viewport } from './viewport';
 
 interface PlanShapesProps {
@@ -63,32 +64,25 @@ export function PlanShapes({
         />
       ))}
 
+      <PlanOpenings
+        project={project}
+        viewport={viewport}
+        selectedWallId={selectedWallId}
+        draftIds={draftIds}
+        conflictIds={conflicts}
+        onPickWall={onPickWall}
+      />
+
       {walls.map(({ wall, start, end, length }) => (
-        <g key={wall.id}>
-          <line
-            className={[
-              'wall-line',
-              wall.isHelper ? 'wall-line-helper' : '',
-              conflicts.has(wall.id) ? 'wall-line-conflict' : '',
-              selectedWallId === wall.id ? 'wall-line-selected' : '',
-              draftIds.has(wall.id) ? 'wall-line-drafted' : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            x1={start.x}
-            y1={start.y}
-            x2={end.x}
-            y2={end.y}
-          />
-          <text
-            className="wall-length"
-            x={(start.x + end.x) / 2}
-            y={(start.y + end.y) / 2 - 6}
-            textAnchor="middle"
-          >
-            {length}
-          </text>
-        </g>
+        <text
+          key={`length-${wall.id}`}
+          className="wall-length"
+          x={(start.x + end.x) / 2}
+          y={(start.y + end.y) / 2 - 6}
+          textAnchor="middle"
+        >
+          {length}
+        </text>
       ))}
 
       {Object.values(project.points).map((point) => {

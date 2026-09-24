@@ -8,9 +8,10 @@ import {
 } from '../core/edit';
 import { commit, initHistory, redo, undo, type History } from '../core/history';
 import { locatePointOnWall } from '../core/locate';
+import { addOpening, removeOpening, updateOpening } from '../core/opening';
 import { createOriginPoint, createProject, drawWall, nextId } from '../core/project';
 import { buildRoomPolygon } from '../core/room';
-import type { Direction, Project, WallKind } from '../core/types';
+import type { Direction, OpeningKind, Project, WallKind } from '../core/types';
 
 export type InputMode = 'wall' | 'helper' | 'select';
 export type TabKey = 'plan' | 'elevation' | 'facade' | 'axon';
@@ -30,6 +31,7 @@ export interface ProjectState {
   roomDraft: string[];
   roomMessage: string;
   roomPicking: boolean;
+  openingMessage: string;
   setTab: (tab: TabKey) => void;
   setMode: (mode: InputMode) => void;
   setStartCorner: (corner: CornerKey) => void;
@@ -56,6 +58,19 @@ export interface ProjectState {
   setRoomPicking: (active: boolean) => void;
   updateRoom: (roomId: string, patch: { name?: string; note?: string }) => void;
   deleteRoom: (roomId: string) => void;
+  addOpeningAt: (input: {
+    wallId: string;
+    kind: OpeningKind;
+    distance: number;
+    width: number;
+    height: number;
+    sillHeight: number;
+  }) => void;
+  changeOpening: (
+    openingId: string,
+    patch: Partial<{ distance: number; width: number; height: number; sillHeight: number }>,
+  ) => void;
+  deleteOpening: (openingId: string) => void;
 }
 
 /** 新工程开局：原点固定，起点角只影响录入提示 */
@@ -75,6 +90,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   roomDraft: [],
   roomMessage: '',
   roomPicking: false,
+  openingMessage: '',
 
   setTab: (tab) => set({ tab }),
   setMode: (mode) => set({ mode, selectedWallId: null, direction: null, digits: '' }),
@@ -236,5 +252,37 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     delete rooms[roomId];
     const project = { ...state.history.present, rooms, updatedAt: new Date().toISOString() };
     set({ history: commit(state.history, project), roomDraft: [], roomMessage: '区域已删除（可撤销）' });
+  },
+
+  addOpeningAt: (input) => {
+    const state = get();
+    const result = addOpening(state.history.present, input);
+    if ('error' in result) {
+      set({ openingMessage: result.error });
+      return;
+    }
+    set({
+      history: commit(state.history, result.project),
+      openingMessage: `已添加 ${result.openingId}`,
+    });
+  },
+
+  changeOpening: (openingId, patch) => {
+    const state = get();
+    const result = updateOpening(state.history.present, openingId, patch);
+    if ('error' in result) {
+      set({ openingMessage: result.error });
+      return;
+    }
+    set({ history: commit(state.history, result.project), openingMessage: '' });
+  },
+
+  deleteOpening: (openingId) => {
+    const state = get();
+    const project = removeOpening(state.history.present, openingId);
+    set({
+      history: commit(state.history, project),
+      openingMessage: '洞口已删除（可撤销）',
+    });
   },
 }));

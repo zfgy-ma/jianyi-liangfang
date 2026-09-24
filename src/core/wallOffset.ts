@@ -79,7 +79,7 @@ function cornerPoint(
 export function buildWallBodies(project: Project): WallBody[] {
   const bodies: WallBody[] = [];
   for (const wall of Object.values(project.walls)) {
-    if (wall.isHelper) continue;
+    if (wall.isHelper || wall.thickness <= 0) continue;
     const ends = endpoints(project, wall);
     if (!ends) continue;
     const offset = offsetVector(ends.start, ends.end, wall.offsetSide, wall.thickness);
