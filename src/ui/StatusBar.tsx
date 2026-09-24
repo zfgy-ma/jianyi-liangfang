@@ -4,6 +4,7 @@ import { useProjectStore } from '../store/useProjectStore';
 export function StatusBar() {
   const project = useProjectStore((state) => state.history.present);
   const activePointId = useProjectStore((state) => state.activePointId);
+  const toolMessage = useProjectStore((state) => state.toolMessage);
 
   const origin =
     Object.values(project.points).find((point) => point.origin.kind === 'origin') ?? null;
@@ -23,6 +24,7 @@ export function StatusBar() {
   return (
     <footer className="status-bar">
       <span className="status-item">闭合检查：{closureText}</span>
+      {toolMessage ? <span className="status-item status-note">{toolMessage}</span> : null}
       {conflicts.length > 0 ? (
         <span className="status-item status-warn">
           有 {conflicts.length} 段墙已不正交，需要修正

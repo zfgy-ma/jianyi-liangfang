@@ -534,6 +534,10 @@ body {
   color: var(--danger);
 }
 
+.status-note {
+  color: var(--accent);
+}
+
 .status-quiet {
   margin-left: auto;
   color: var(--ink-quiet);

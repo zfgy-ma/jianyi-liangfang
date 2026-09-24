@@ -7,10 +7,10 @@ import {
   updateWallLength,
 } from '../core/edit';
 import { commit, initHistory, redo, undo, type History } from '../core/history';
-import { locatePointOnWall } from '../core/locate';
 import { addOpening, removeOpening, updateOpening } from '../core/opening';
 import { createOriginPoint, createProject, drawWall, nextId } from '../core/project';
 import { buildRoomPolygon } from '../core/room';
+import { splitWallAt } from '../core/split';
 import type { Direction, OpeningKind, Project, WallKind } from '../core/types';
 
 export type InputMode = 'wall' | 'helper' | 'select';
@@ -32,6 +32,8 @@ export interface ProjectState {
   roomMessage: string;
   roomPicking: boolean;
   openingMessage: string;
+  /** 一次性操作提示，显示在底部状态栏 */
+  toolMessage: string;
   setTab: (tab: TabKey) => void;
   setMode: (mode: InputMode) => void;
   setStartCorner: (corner: CornerKey) => void;
@@ -91,6 +93,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   roomMessage: '',
   roomPicking: false,
   openingMessage: '',
+  toolMessage: '',
 
   setTab: (tab) => set({ tab }),
   setMode: (mode) => set({ mode, selectedWallId: null, direction: null, digits: '' }),
@@ -136,14 +139,18 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   locateOnWall: (wallId, distance) => {
     const state = get();
-    const located = locatePointOnWall(state.history.present, wallId, distance);
-    if (!located) return;
+    const result = splitWallAt(state.history.present, wallId, distance);
+    if ('error' in result) {
+      set({ toolMessage: result.error });
+      return;
+    }
     set({
-      history: commit(state.history, located.project),
-      activePointId: located.pointId,
+      history: commit(state.history, result.project),
+      activePointId: result.pointId,
       selectedWallId: wallId,
       direction: null,
       digits: '',
+      toolMessage: `${wallId} 已在 ${distance}mm 处断开，新端点 ${result.pointId} 已设为起点`,
     });
   },
 

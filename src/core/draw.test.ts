@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { closureGap, lengthBetween } from './geometry';
-import { locatePointOnWall } from './locate';
 import { createOriginPoint, createProject, drawWall } from './project';
+import { addOpening } from './opening';
+import { splitWallAt } from './split';
 import type { Direction, Project } from './types';
 
 /** 从一个有明确来源的原点开始，之后只给方向和长度 */
@@ -69,23 +70,39 @@ describe('按方向与长度落线', () => {
   });
 });
 
-describe('沿已有墙按数值取点', () => {
-  it('距起点 1500mm 处取到精确点，并记录来源', () => {
+describe('沿已有墙按数值取点（会把原墙拆成两段）', () => {
+  it('距起点 1500mm 处取点：墙体断开，新端点可追溯', () => {
     const start = begin();
     const a = draw(start.project, start.pointId, 'E', 4000);
-    const located = locatePointOnWall(a.project, a.wallId, 1500);
-    expect(located).not.toBeNull();
-    const point = located!.project.points[located!.pointId];
+    const result = splitWallAt(a.project, a.wallId, 1500);
+    if ('error' in result) throw new Error(result.error);
+    expect(wallLengths(result.project)).toEqual([1500, 2500]);
+    const point = result.project.points[result.pointId];
     expect([point.x, point.y]).toEqual([1500, 0]);
     expect(point.origin).toEqual({ kind: 'onWall', wallId: a.wallId, distance: 1500 });
   });
 
-  it('取到同一位置时复用已有点，越界则返回空', () => {
+  it('洞口落在后半段时自动换算距离；压住洞口则报错不改数据', () => {
     const start = begin();
     const a = draw(start.project, start.pointId, 'E', 4000);
-    const first = locatePointOnWall(a.project, a.wallId, 1500)!;
-    const second = locatePointOnWall(first.project, a.wallId, 1500)!;
-    expect(second.pointId).toBe(first.pointId);
-    expect(locatePointOnWall(a.project, a.wallId, 4001)).toBeNull();
+    const withWindow = addOpening(a.project, {
+      wallId: a.wallId,
+      kind: 'window',
+      distance: 3000,
+      width: 600,
+      height: 1500,
+      sillHeight: 900,
+    });
+    if ('error' in withWindow) throw new Error(withWindow.error);
+
+    const split = splitWallAt(withWindow.project, a.wallId, 1500);
+    if ('error' in split) throw new Error(split.error);
+    const moved = Object.values(split.project.openings)[0];
+    expect(moved.distance).toBe(1500);
+    expect(moved.wallId).not.toBe(a.wallId);
+
+    const blocked = splitWallAt(withWindow.project, a.wallId, 3200);
+    expect(blocked).toHaveProperty('error');
+    expect(splitWallAt(withWindow.project, a.wallId, 4001)).toHaveProperty('error');
   });
 });

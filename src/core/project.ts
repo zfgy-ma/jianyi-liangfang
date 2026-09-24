@@ -92,8 +92,8 @@ export function drawWall(project: Project, input: DrawWallInput): DrawResult {
   }
   const target = step({ x: from.x, y: from.y }, input.direction, input.length);
   const kind: WallKind = input.kind ?? (input.isHelper ? 'inner' : 'outer');
-  const thickness =
-    kind === 'outer' ? project.outerThickness : project.innerThickness;
+  // 内墙不自动偏移：厚度留到实测后由用户手动设定，避免混进立面与墙厚图
+  const thickness = kind === 'outer' ? project.outerThickness : 0;
 
   const points: Record<string, PlanPoint> = { ...project.points };
   const existingId = findPointIdAt(project, target);
