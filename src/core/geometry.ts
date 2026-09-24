@@ -23,6 +23,12 @@ export function pointOnWall(start: Vec2, end: Vec2, distance: number): Vec2 | nu
   return step(start, direction, distance);
 }
 
+/** 等分距离：parts = 2 取中点，3 取三等分点，4 取四等分点 */
+export function divideDistance(length: number, parts: number): number {
+  if (parts <= 1) return length;
+  return Math.round(length / parts);
+}
+
 /** 多边形有向面积，逆时针为正；单位平方毫米 */
 export function polygonSignedArea(points: Vec2[]): number {
   let sum = 0;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { closureGap, lengthBetween } from './geometry';
+import { closureGap, divideDistance, lengthBetween } from './geometry';
 import { createOriginPoint, createProject, drawWall } from './project';
 import { addOpening } from './opening';
 import { splitWallAt } from './split';
@@ -71,6 +71,12 @@ describe('按方向与长度落线', () => {
 });
 
 describe('沿已有墙按数值取点（会把原墙拆成两段）', () => {
+  it('中点与等分距离按四舍五入取整', () => {
+    expect(divideDistance(4000, 2)).toBe(2000);
+    expect(divideDistance(4000, 3)).toBe(1333);
+    expect(divideDistance(4001, 4)).toBe(1000);
+  });
+
   it('距起点 1500mm 处取点：墙体断开，新端点可追溯', () => {
     const start = begin();
     const a = draw(start.project, start.pointId, 'E', 4000);

@@ -1,4 +1,4 @@
-import { lengthBetween } from '../core/geometry';
+import { divideDistance, lengthBetween } from '../core/geometry';
 import { useProjectStore } from '../store/useProjectStore';
 
 export function InspectorPanel() {
@@ -129,6 +129,29 @@ export function InspectorPanel() {
         >
           沿墙按此距离取点
         </button>
+        <div className="mode-switch">
+          <button
+            type="button"
+            className="mode-key"
+            onClick={() => locateOnWall(wall.id, divideDistance(length, 2))}
+          >
+            取中点
+          </button>
+          <button
+            type="button"
+            className="mode-key"
+            onClick={() => locateOnWall(wall.id, divideDistance(length, 3))}
+          >
+            三等分点
+          </button>
+          <button
+            type="button"
+            className="mode-key"
+            onClick={() => locateOnWall(wall.id, divideDistance(length, 4))}
+          >
+            四等分点
+          </button>
+        </div>
       </div>
 
       <button
