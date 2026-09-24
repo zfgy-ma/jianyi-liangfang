@@ -10,6 +10,7 @@ import { InspectorPanel } from './ui/InspectorPanel';
 import { NumberPad } from './ui/NumberPad';
 import { OpeningPanel } from './ui/OpeningPanel';
 import { PlanCanvas } from './ui/PlanCanvas';
+import { ProjectPanel } from './ui/ProjectPanel';
 import { RoomPanel } from './ui/RoomPanel';
 import { StatusBar } from './ui/StatusBar';
 import { TabBar } from './ui/TabBar';
@@ -46,6 +47,7 @@ export function App() {
           {tab === 'plan' ? (
             <>
               <InputPanel />
+              <ProjectPanel />
               <RoomPanel />
               <InspectorPanel />
             </>

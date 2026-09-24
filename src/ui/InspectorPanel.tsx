@@ -9,6 +9,7 @@ export function InspectorPanel() {
   const flipOffset = useProjectStore((state) => state.flipOffset);
   const changeWallKind = useProjectStore((state) => state.changeWallKind);
   const changeWallThickness = useProjectStore((state) => state.changeWallThickness);
+  const changeWallHeight = useProjectStore((state) => state.changeWallHeight);
   const deleteWall = useProjectStore((state) => state.deleteWall);
   const locateOnWall = useProjectStore((state) => state.locateOnWall);
 
@@ -49,6 +50,10 @@ export function InspectorPanel() {
         <div className="prop-row">
           <dt>墙厚</dt>
           <dd>{wall.thickness} mm</dd>
+        </div>
+        <div className="prop-row">
+          <dt>墙高</dt>
+          <dd>{wall.height ?? `${project.wallHeight}（随工程层高）`} mm</dd>
         </div>
         <div className="prop-row">
           <dt>墙厚偏移</dt>
@@ -99,6 +104,23 @@ export function InspectorPanel() {
         >
           按实测值设墙厚
         </button>
+        <button
+          type="button"
+          className="tool-button"
+          disabled={!hasPending}
+          onClick={() => changeWallHeight(wall.id, pending)}
+        >
+          用键盘数值设这面墙的墙高
+        </button>
+        {wall.height !== undefined ? (
+          <button
+            type="button"
+            className="tool-button"
+            onClick={() => changeWallHeight(wall.id, undefined)}
+          >
+            恢复随工程层高
+          </button>
+        ) : null}
         <button
           type="button"
           className="tool-button"

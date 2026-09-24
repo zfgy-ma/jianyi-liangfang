@@ -1,8 +1,10 @@
 import { create } from 'zustand';
 import {
+  applyOuterThickness,
   flipWallOffsetSide,
   removeWall,
   setWallKind,
+  setWallHeight as applyWallHeight,
   setWallThickness,
   updateWallLength,
 } from '../core/edit';
@@ -73,6 +75,13 @@ export interface ProjectState {
     patch: Partial<{ distance: number; width: number; height: number; sillHeight: number }>,
   ) => void;
   deleteOpening: (openingId: string) => void;
+  updateProjectMeta: (patch: {
+    name?: string;
+    wallHeight?: number;
+    outerThickness?: number;
+  }) => void;
+  changeWallHeight: (wallId: string, height: number | undefined) => void;
+  applyOuterThicknessToAll: () => void;
 }
 
 /** 新工程开局：原点固定，起点角只影响录入提示 */
@@ -290,6 +299,31 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     set({
       history: commit(state.history, project),
       openingMessage: '洞口已删除（可撤销）',
+    });
+  },
+
+  updateProjectMeta: (patch) => {
+    const state = get();
+    const project = {
+      ...state.history.present,
+      ...patch,
+      updatedAt: new Date().toISOString(),
+    };
+    set({ history: commit(state.history, project) });
+  },
+
+  changeWallHeight: (wallId, height) => {
+    const state = get();
+    const project = applyWallHeight(state.history.present, wallId, height);
+    set({ history: commit(state.history, project) });
+  },
+
+  applyOuterThicknessToAll: () => {
+    const state = get();
+    const project = applyOuterThickness(state.history.present);
+    set({
+      history: commit(state.history, project),
+      toolMessage: `所有外墙厚度已统一为 ${project.outerThickness}mm`,
     });
   },
 }));

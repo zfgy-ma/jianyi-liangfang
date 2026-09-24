@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { updateWallLength } from './edit';
+import { applyOuterThickness, setWallHeight, updateWallLength } from './edit';
 import { lengthBetween } from './geometry';
 import { createOriginPoint, createProject, drawWall } from './project';
-import { buildRoomPolygon, roomArea, toSquareMeters } from './room';
+import { buildRoomPolygon, roomArea, toSquareMeters, wallGrossArea } from './room';
 import { findWallConflicts } from './validate';
 import { buildWallBodies } from './wallOffset';
 import type { Direction, Project, Room } from './types';
@@ -96,5 +96,32 @@ describe('区域面积与墙厚', () => {
     const eastBody = bodies.find((body) => body.wallId === east.wallId);
     expect(southBody?.polygon[2]).toEqual({ x: 4240, y: -240 });
     expect(eastBody?.polygon[3]).toEqual({ x: 4240, y: -240 });
+  });
+});
+
+describe('工程级设置', () => {
+  it('单墙可以覆盖层高，也能恢复随工程层高', () => {
+    const start = begin();
+    const a = draw(start.project, start.pointId, 'E', 4000);
+    const raised = setWallHeight(a.project, a.wallId, 3200);
+    expect(wallGrossArea(raised, raised.walls[a.wallId])).toBe(4000 * 3200);
+    expect(wallGrossArea(a.project, a.project.walls[a.wallId])).toBe(4000 * 2800);
+    const restored = setWallHeight(raised, a.wallId, undefined);
+    expect(wallGrossArea(restored, restored.walls[a.wallId])).toBe(4000 * 2800);
+  });
+
+  it('统一外墙厚度时只改外墙，内墙保持实测值', () => {
+    const start = begin();
+    const outer = draw(start.project, start.pointId, 'E', 4000);
+    const inner = drawWall(outer.project, {
+      fromPointId: outer.pointId,
+      direction: 'N',
+      length: 3000,
+      kind: 'inner',
+    });
+    const target = { ...inner.project, outerThickness: 300 };
+    const applied = applyOuterThickness(target);
+    expect(applied.walls[outer.wallId].thickness).toBe(300);
+    expect(applied.walls[inner.wallId].thickness).toBe(0);
   });
 });

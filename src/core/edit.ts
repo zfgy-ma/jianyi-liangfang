@@ -108,6 +108,33 @@ export function setWallThickness(
   };
 }
 
+/** 单独指定某面墙的高度；传 undefined 表示回到工程统一层高 */
+export function setWallHeight(
+  project: Project,
+  wallId: string,
+  height: number | undefined,
+): Project {
+  const wall = project.walls[wallId];
+  if (!wall) return project;
+  if (height !== undefined && height <= 0) return project;
+  return {
+    ...project,
+    walls: { ...project.walls, [wallId]: { ...wall, height } },
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+/** 把当前外墙厚度应用到所有外墙；内墙不动，仍按实测单独设置 */
+export function applyOuterThickness(project: Project): Project {
+  const walls = Object.fromEntries(
+    Object.entries(project.walls).map(([id, wall]) => [
+      id,
+      wall.kind === 'outer' ? { ...wall, thickness: project.outerThickness } : wall,
+    ]),
+  );
+  return { ...project, walls, updatedAt: new Date().toISOString() };
+}
+
 /** 删除一段墙，同时清理它的洞口、区域引用与孤立端点 */
 export function removeWall(project: Project, wallId: string): Project {
   const wall = project.walls[wallId];
