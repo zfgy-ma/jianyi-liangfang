@@ -4,6 +4,7 @@ import { useProjectStore } from '../store/useProjectStore';
 export function ElevationCanvas() {
   const project = useProjectStore((state) => state.history.present);
   const selectedWallId = useProjectStore((state) => state.selectedWallId);
+  const draft = useProjectStore((state) => state.elevationDraft);
   const wall = selectedWallId ? project.walls[selectedWallId] : null;
 
   if (!wall) {
@@ -77,6 +78,22 @@ export function ElevationCanvas() {
           y1={floorY}
           x2={axis.length + pad * 0.5}
           y2={floorY}
+        />
+        {draft.segments.map((segment, index) => (
+          <line
+            key={`draft-${index}`}
+            className="elevation-draft-line"
+            x1={segment.x1}
+            y1={axis.height - segment.y1}
+            x2={segment.x2}
+            y2={axis.height - segment.y2}
+          />
+        ))}
+        <circle
+          className="elevation-draft-point"
+          cx={draft.point.x}
+          cy={axis.height - draft.point.y}
+          r={labelSize * 0.6}
         />
         <text
           className="elevation-label"

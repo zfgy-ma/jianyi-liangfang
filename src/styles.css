@@ -630,6 +630,17 @@ body {
   fill: var(--ink-soft);
 }
 
+.elevation-draft-line {
+  stroke: var(--warn);
+  stroke-width: 2;
+  stroke-dasharray: 8 5;
+  vector-effect: non-scaling-stroke;
+}
+
+.elevation-draft-point {
+  fill: var(--warn);
+}
+
 .wall-hit {
   fill: transparent;
   cursor: pointer;

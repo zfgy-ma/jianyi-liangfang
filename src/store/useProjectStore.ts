@@ -9,6 +9,12 @@ import {
   updateWallLength,
 } from '../core/edit';
 import { commit, initHistory, redo, undo, type History } from '../core/history';
+import { elevationAxis } from '../core/elevation';
+import {
+  detectRectangle,
+  drawElevationStroke,
+  type ElevationDraft,
+} from '../core/elevationDraft';
 import { addOpening, removeOpening, updateOpening } from '../core/opening';
 import { createOriginPoint, createProject, drawWall, nextId } from '../core/project';
 import { buildRoomPolygon } from '../core/room';
@@ -36,6 +42,8 @@ export interface ProjectState {
   openingMessage: string;
   /** 一次性操作提示，显示在底部状态栏 */
   toolMessage: string;
+  /** 立面上手画草稿：用方向＋长度落笔，最后四笔围成矩形即可标记成洞口 */
+  elevationDraft: ElevationDraft;
   setTab: (tab: TabKey) => void;
   setMode: (mode: InputMode) => void;
   setStartCorner: (corner: CornerKey) => void;
@@ -82,6 +90,8 @@ export interface ProjectState {
   }) => void;
   changeWallHeight: (wallId: string, height: number | undefined) => void;
   applyOuterThicknessToAll: () => void;
+  markElevationDraft: (kind: OpeningKind) => void;
+  clearElevationDraft: () => void;
 }
 
 /** 新工程开局：原点固定，起点角只影响录入提示 */
@@ -103,6 +113,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   roomPicking: false,
   openingMessage: '',
   toolMessage: '',
+  elevationDraft: { point: { x: 0, y: 0 }, segments: [] },
 
   setTab: (tab) => set({ tab }),
   setMode: (mode) => set({ mode, selectedWallId: null, direction: null, digits: '' }),
@@ -118,7 +129,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     }),
 
   selectPoint: (pointId) => set({ activePointId: pointId, direction: null, digits: '' }),
-  selectWall: (wallId) => set({ selectedWallId: wallId }),
+  selectWall: (wallId) =>
+    set({
+      selectedWallId: wallId,
+      elevationDraft: { point: { x: 0, y: 0 }, segments: [] },
+    }),
 
   pressDirection: (direction) => set({ direction }),
   pressDigit: (digit) => set({ digits: get().digits + digit }),
@@ -128,9 +143,27 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   confirmDraw: () => {
     const state = get();
     const length = Number(state.digits);
-    if (!state.direction || !state.activePointId || !Number.isFinite(length) || length <= 0) {
+    if (!state.direction || !Number.isFinite(length) || length <= 0) {
       return;
     }
+    // 立面页：方向与长度画的是墙面上的草稿线，不是平面墙
+    if (state.tab === 'elevation') {
+      if (!state.selectedWallId) {
+        set({ toolMessage: '先在平面图上点选一面墙，再在立面上落笔' });
+        return;
+      }
+      set({
+        elevationDraft: drawElevationStroke(
+          state.elevationDraft,
+          state.direction,
+          length,
+        ),
+        direction: null,
+        digits: '',
+      });
+      return;
+    }
+    if (!state.activePointId) return;
     const result = drawWall(state.history.present, {
       fromPointId: state.activePointId,
       direction: state.direction,
@@ -324,6 +357,46 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     set({
       history: commit(state.history, project),
       toolMessage: `所有外墙厚度已统一为 ${project.outerThickness}mm`,
+    });
+  },
+
+  clearElevationDraft: () =>
+    set({ elevationDraft: { point: { x: 0, y: 0 }, segments: [] } }),
+
+  markElevationDraft: (kind) => {
+    const state = get();
+    const wallId = state.selectedWallId;
+    const wall = wallId ? state.history.present.walls[wallId] : null;
+    if (!wallId || !wall) {
+      set({ openingMessage: '先在平面图上点选一面墙' });
+      return;
+    }
+    const rect = detectRectangle(state.elevationDraft.segments);
+    if (!rect) {
+      set({ openingMessage: '最后四笔没有围成闭合矩形，无法标记成洞口' });
+      return;
+    }
+    const axis = elevationAxis(state.history.present, wall);
+    if (!axis) {
+      set({ openingMessage: '这面墙的端点数据不完整' });
+      return;
+    }
+    const result = addOpening(state.history.present, {
+      wallId,
+      kind,
+      distance: axis.toWallDistance(rect.left),
+      width: rect.width,
+      height: rect.height,
+      sillHeight: rect.bottom,
+    });
+    if ('error' in result) {
+      set({ openingMessage: result.error });
+      return;
+    }
+    set({
+      history: commit(state.history, result.project),
+      elevationDraft: { point: { x: 0, y: 0 }, segments: [] },
+      openingMessage: `已把画出的矩形标记为${kind === 'window' ? '窗' : '门'}：${result.openingId}`,
     });
   },
 }));
