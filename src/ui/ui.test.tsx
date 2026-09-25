@@ -11,6 +11,8 @@ import type { Direction, OffsetSide, Project } from '../core/types';
 import { useProjectStore } from '../store/useProjectStore';
 import { Dock } from './Dock';
 import { FacadeCanvas } from './FacadeCanvas';
+import { PlanCanvas } from './PlanCanvas';
+import { PlanGrid } from './PlanGrid';
 import { TabBar } from './TabBar';
 
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
@@ -69,6 +71,32 @@ describe('界面结构', () => {
     expect(html).toContain('三维视图');
     expect(html).toContain('四向立面');
     expect(html).not.toContain('单墙立面');
+  });
+
+  it('平面网格按 100mm 铺开，视角太平时不画网格', () => {
+    const viewport = {
+      centerX: 0,
+      centerY: 0,
+      scale: 0.05,
+      width: 800,
+      height: 600,
+      yaw: 0,
+      pitch: 90,
+    };
+    const html = render(<PlanGrid viewport={viewport} />);
+    expect(html).toContain('grid-line');
+    expect((html.match(/<line/g) ?? []).length).toBeGreaterThan(10);
+    expect(render(<PlanGrid viewport={{ ...viewport, pitch: 0 }} />)).toBe('');
+  });
+
+  it('平面画布渲染出网格与可点选的墙体', () => {
+    useProjectStore.getState().replaceProject(closedRoom());
+    useProjectStore.getState().setTab('plan');
+    const html = render(<PlanCanvas preset={{ yaw: 0, pitch: 90 }} />);
+    expect(html).toContain('plan-canvas');
+    expect(html).toContain('plan-grid');
+    expect(html).toContain('data-wall-id');
+    expect(html).toContain('data-point-id');
   });
 
   it('四向立面卡片带方位标记与逐段长度', () => {
