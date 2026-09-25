@@ -9,7 +9,6 @@ interface PlanOpeningsProps {
   selectedWallId: string | null;
   draftIds: Set<string>;
   conflictIds: Set<string>;
-  onPickWall: (wallId: string) => void;
 }
 
 /** 沿墙推进一段距离后的世界坐标 */
@@ -46,7 +45,6 @@ export function PlanOpenings({
   selectedWallId,
   draftIds,
   conflictIds,
-  onPickWall,
 }: PlanOpeningsProps) {
   const sp = (point: Vec2) => toScreen(viewport, point);
 
@@ -95,7 +93,7 @@ export function PlanOpenings({
               y={Math.min(sp(start).y, sp(end).y) - 8}
               width={Math.abs(sp(end).x - sp(start).x) + 16}
               height={Math.abs(sp(end).y - sp(start).y) + 16}
-              onClick={() => onPickWall(wall.id)}
+              data-wall-id={wall.id}
             />
             {segments.map((segment) => (
               <line

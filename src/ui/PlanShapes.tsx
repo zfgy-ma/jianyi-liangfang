@@ -12,8 +12,6 @@ interface PlanShapesProps {
   activePointId: string | null;
   selectedWallId: string | null;
   draftWallIds: string[];
-  onPickPoint: (pointId: string) => void;
-  onPickWall: (wallId: string) => void;
 }
 
 export function PlanShapes({
@@ -22,8 +20,6 @@ export function PlanShapes({
   activePointId,
   selectedWallId,
   draftWallIds,
-  onPickPoint,
-  onPickWall,
 }: PlanShapesProps) {
   const draftIds = useMemo(() => new Set(draftWallIds), [draftWallIds]);
   const bodies = useMemo(() => buildWallBodies(project), [project]);
@@ -51,16 +47,13 @@ export function PlanShapes({
           className={
             conflicts.has(body.wallId) ? 'wall-body wall-body-conflict' : 'wall-body'
           }
+          data-wall-id={body.wallId}
           points={body.polygon
             .map((position) => {
               const screen = toScreen(viewport, position);
               return `${screen.x},${screen.y}`;
             })
             .join(' ')}
-          onClick={(event) => {
-            event.stopPropagation();
-            onPickWall(body.wallId);
-          }}
         />
       ))}
 
@@ -70,7 +63,6 @@ export function PlanShapes({
         selectedWallId={selectedWallId}
         draftIds={draftIds}
         conflictIds={conflicts}
-        onPickWall={onPickWall}
       />
 
       {walls.map(({ wall, start, end, length }) => (
@@ -96,10 +88,7 @@ export function PlanShapes({
             cx={screen.x}
             cy={screen.y}
             r={point.id === activePointId ? 6 : 4}
-            onClick={(event) => {
-              event.stopPropagation();
-              onPickPoint(point.id);
-            }}
+            data-point-id={point.id}
           />
         );
       })}

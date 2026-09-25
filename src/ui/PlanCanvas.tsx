@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useProjectStore } from '../store/useProjectStore';
 import { PlanShapes } from './PlanShapes';
+import { PlanGrid } from './PlanGrid';
 import { fitViewport, toWorld, type Viewport } from './viewport';
 
 const MIN_SCALE = 0.002;
@@ -23,6 +24,13 @@ export function PlanCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinchDistance = useRef<number | null>(null);
+  /** 记录按下时命中的图元，抬起时若没有拖动就当作点选 */
+  const pendingTap = useRef<{
+    pointId: string | null;
+    wallId: string | null;
+    x: number;
+    y: number;
+  } | null>(null);
   const [size, setSize] = useState({ width: 900, height: 620 });
   const [viewport, setViewport] = useState<Viewport>({
     centerX: 0,
@@ -52,6 +60,13 @@ export function PlanCanvas() {
   }, [size.width, size.height]);
 
   const handlePointerDown = (event: React.PointerEvent<SVGSVGElement>) => {
+    const target = event.target as Element;
+    pendingTap.current = {
+      pointId: target.getAttribute('data-point-id'),
+      wallId: target.getAttribute('data-wall-id'),
+      x: event.clientX,
+      y: event.clientY,
+    };
     (event.currentTarget as Element).setPointerCapture(event.pointerId);
     pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
     if (pointers.current.size === 2) {
@@ -85,6 +100,20 @@ export function PlanCanvas() {
   };
 
   const handlePointerUp = (event: React.PointerEvent<SVGSVGElement>) => {
+    const tap = pendingTap.current;
+    const moved = tap ? Math.hypot(event.clientX - tap.x, event.clientY - tap.y) : 0;
+    // 拖动过就不算点选，避免平移画布时误选
+    if (tap && moved <= 8 && pointers.current.size === 1) {
+      if (tap.pointId) {
+        selectPoint(tap.pointId);
+      } else if (tap.wallId) {
+        if (roomPicking) toggleRoomWall(tap.wallId);
+        else selectWall(tap.wallId);
+      } else {
+        selectWall(null);
+      }
+    }
+    pendingTap.current = null;
     pointers.current.delete(event.pointerId);
     if (pointers.current.size < 2) pinchDistance.current = null;
   };
@@ -105,10 +134,6 @@ export function PlanCanvas() {
     });
   };
 
-  const handleBackground = () => {
-    selectWall(null);
-  };
-
   const scaleLabel =
     viewport.scale >= 1 ? '1:1' : `1:${Math.round(1 / viewport.scale)}`;
 
@@ -123,18 +148,13 @@ export function PlanCanvas() {
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
         onWheel={handleWheel}
-        onClick={handleBackground}
       >
+        <PlanGrid viewport={viewport} />
         <PlanShapes
           project={project}
           viewport={viewport}
           activePointId={activePointId}
           selectedWallId={selectedWallId}
-          onPickPoint={(pointId) => selectPoint(pointId)}
-          onPickWall={(wallId) => {
-            if (roomPicking) toggleRoomWall(wallId);
-            else selectWall(wallId);
-          }}
           draftWallIds={roomDraft}
         />
       </svg>

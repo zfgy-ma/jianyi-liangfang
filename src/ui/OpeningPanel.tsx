@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { elevationAxis } from '../core/elevation';
-import { detectRectangle } from '../core/elevationDraft';
 import type { OpeningKind } from '../core/types';
 import { useProjectStore } from '../store/useProjectStore';
 
@@ -17,9 +16,6 @@ export function OpeningPanel() {
   const openingMessage = useProjectStore((state) => state.openingMessage);
   const addOpeningAt = useProjectStore((state) => state.addOpeningAt);
   const deleteOpening = useProjectStore((state) => state.deleteOpening);
-  const elevationDraft = useProjectStore((state) => state.elevationDraft);
-  const markElevationDraft = useProjectStore((state) => state.markElevationDraft);
-  const clearElevationDraft = useProjectStore((state) => state.clearElevationDraft);
 
   const [kind, setKind] = useState<OpeningKind>('window');
   const [values, setValues] = useState<number[]>(PRESETS.window);
@@ -43,7 +39,6 @@ export function OpeningPanel() {
   );
   const pending = Number(digits);
   const canFill = digits !== '' && Number.isFinite(pending) && pending >= 0;
-  const hasRectangle = Boolean(detectRectangle(elevationDraft.segments));
 
   const applyPreset = (nextKind: OpeningKind) => {
     setKind(nextKind);
@@ -125,36 +120,6 @@ export function OpeningPanel() {
       >
         添加这个洞口
       </button>
-
-      <p className="hint hint-quiet">
-        也可以在立面上用方向＋长度手画矩形（上／右／下／左），四笔闭合后直接标记：
-      </p>
-      <div className="prop-actions">
-        <button
-          type="button"
-          className="tool-button"
-          disabled={!hasRectangle}
-          onClick={() => markElevationDraft('window')}
-        >
-          标记为窗
-        </button>
-        <button
-          type="button"
-          className="tool-button"
-          disabled={!hasRectangle}
-          onClick={() => markElevationDraft('door')}
-        >
-          标记为门
-        </button>
-        <button
-          type="button"
-          className="tool-button"
-          disabled={elevationDraft.segments.length === 0}
-          onClick={clearElevationDraft}
-        >
-          清空立面草稿
-        </button>
-      </div>
 
       {openingMessage ? <p className="hint">{openingMessage}</p> : null}
 

@@ -28,6 +28,8 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 .app-header {
@@ -57,6 +59,7 @@ body {
 }
 
 .app-main {
+  position: relative;
   display: flex;
   flex: 1;
   min-height: 0;
@@ -132,6 +135,7 @@ body {
   position: relative;
   flex: 1;
   min-width: 0;
+  min-height: 0;
   background: var(--surface);
 }
 
@@ -159,16 +163,103 @@ body {
   border-radius: 6px;
 }
 
-.side-panel {
+.dock {
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  width: 300px;
-  flex-shrink: 0;
-  padding: 12px;
+  gap: 6px;
+  padding: 6px 8px calc(8px + env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+
+.dock-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.dock-row::-webkit-scrollbar {
+  display: none;
+}
+
+.dock-gap {
+  flex: 0 0 6px;
+}
+
+.dock-pads {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.dock .direction-pad {
+  flex: 0 0 auto;
+  grid-template-columns: repeat(3, 46px);
+  grid-template-rows: repeat(3, 46px);
+  gap: 4px;
+}
+
+.dock .number-pad {
+  flex: 1;
+  min-width: 0;
+  gap: 5px;
+}
+
+.dock .number-display {
+  padding: 4px 8px;
+}
+
+.dock .number-value {
+  font-size: 20px;
+}
+
+.dock .number-keys {
+  gap: 5px;
+}
+
+.dock .num-key {
+  height: 34px;
+  font-size: 15px;
+}
+
+.dock .confirm-key {
+  height: 38px;
+  font-size: 14px;
+}
+
+.sheet {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(20, 26, 34, 0.35);
+}
+
+.sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-height: 82%;
+  padding: 12px 12px calc(14px + env(safe-area-inset-bottom));
   overflow-y: auto;
   background: var(--surface-sunken);
-  border-left: 1px solid var(--line);
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 -10px 30px rgba(24, 32, 44, 0.2);
+}
+
+.sheet-head {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--surface-sunken);
 }
 
 .panel {
@@ -414,6 +505,15 @@ body {
   stroke: none;
 }
 
+.grid-line {
+  stroke: #eaeef3;
+  stroke-width: 1;
+}
+
+.grid-line-major {
+  stroke: #d6dde6;
+}
+
 .wall-body:hover {
   fill: #ccd3db;
 }
@@ -544,24 +644,27 @@ body {
 }
 
 @media (max-width: 860px) {
-  .app-main {
-    flex-direction: column;
+  .app-header {
+    gap: 8px;
+    padding: 8px 10px;
   }
 
-  .side-panel {
-    width: 100%;
-    max-height: 48vh;
-    border-top: 1px solid var(--line);
-    border-left: none;
+  .brand-title {
+    font-size: 14px;
+  }
+
+  .brand-project {
+    display: none;
   }
 
   .status-bar {
-    flex-wrap: wrap;
     gap: 8px;
+    padding: 6px 10px;
+    font-size: 11px;
   }
 
   .status-quiet {
-    margin-left: 0;
+    display: none;
   }
 }
 

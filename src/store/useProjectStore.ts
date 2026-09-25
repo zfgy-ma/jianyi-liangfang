@@ -23,6 +23,8 @@ import type { Direction, OpeningKind, Project, WallKind } from '../core/types';
 
 export type InputMode = 'wall' | 'helper' | 'select';
 export type TabKey = 'plan' | 'elevation' | 'facade' | 'axon';
+/** 底部浮层面板：手机上用完即收，避免页面越滚越长 */
+export type SheetKey = 'none' | 'project' | 'rooms' | 'wall' | 'opening';
 /** 开局选角只决定录入习惯，不影响坐标系原点 */
 export type CornerKey = 'SE' | 'NE' | 'SW' | 'NW';
 
@@ -34,6 +36,7 @@ export interface ProjectState {
   direction: Direction | null;
   digits: string;
   tab: TabKey;
+  activeSheet: SheetKey;
   startCorner: CornerKey;
   /** 圈定区域时按顺序收集的墙 id */
   roomDraft: string[];
@@ -45,6 +48,7 @@ export interface ProjectState {
   /** 立面上手画草稿：用方向＋长度落笔，最后四笔围成矩形即可标记成洞口 */
   elevationDraft: ElevationDraft;
   setTab: (tab: TabKey) => void;
+  setActiveSheet: (sheet: SheetKey) => void;
   setMode: (mode: InputMode) => void;
   setStartCorner: (corner: CornerKey) => void;
   newProject: (name: string, corner: CornerKey) => void;
@@ -100,6 +104,16 @@ function freshProject(name: string) {
   return { history: initHistory(created.project), activePointId: created.pointId };
 }
 
+/**
+ * 撤销、重做或删除之后，落笔点可能指向已经不存在的点。
+ * 这里把它收拢到仍然存在的点上，否则后续录入会静默失效。
+ */
+function resolveActivePoint(project: Project, currentId: string | null): string | null {
+  if (currentId && project.points[currentId]) return currentId;
+  const ids = Object.keys(project.points);
+  return ids.length > 0 ? ids[ids.length - 1] : null;
+}
+
 export const useProjectStore = create<ProjectState>((set, get) => ({
   ...freshProject('未命名工程'),
   selectedWallId: null,
@@ -107,6 +121,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   direction: null,
   digits: '',
   tab: 'plan',
+  activeSheet: 'none',
   startCorner: 'SE',
   roomDraft: [],
   roomMessage: '',
@@ -116,6 +131,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   elevationDraft: { point: { x: 0, y: 0 }, segments: [] },
 
   setTab: (tab) => set({ tab }),
+  setActiveSheet: (sheet) => set({ activeSheet: sheet }),
   setMode: (mode) => set({ mode, selectedWallId: null, direction: null, digits: '' }),
   setStartCorner: (corner) => set({ startCorner: corner }),
   newProject: (name, corner) => set({ ...freshProject(name), startCorner: corner }),
@@ -163,9 +179,13 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       });
       return;
     }
-    if (!state.activePointId) return;
+    const activePointId = resolveActivePoint(state.history.present, state.activePointId);
+    if (!activePointId) {
+      set({ toolMessage: '当前工程还没有起点，先在“工程”里新建或点选一个端点' });
+      return;
+    }
     const result = drawWall(state.history.present, {
-      fromPointId: state.activePointId,
+      fromPointId: activePointId,
       direction: state.direction,
       length,
       isHelper: state.mode === 'helper',
@@ -234,8 +254,28 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     });
   },
 
-  undo: () => set((state) => ({ history: undo(state.history) })),
-  redo: () => set((state) => ({ history: redo(state.history) })),
+  undo: () =>
+    set((state) => {
+      const history = undo(state.history);
+      return {
+        history,
+        activePointId: resolveActivePoint(history.present, state.activePointId),
+        direction: null,
+        digits: '',
+        toolMessage: '已撤销一步，可以继续接着画',
+      };
+    }),
+  redo: () =>
+    set((state) => {
+      const history = redo(state.history);
+      return {
+        history,
+        activePointId: resolveActivePoint(history.present, state.activePointId),
+        direction: null,
+        digits: '',
+        toolMessage: '已重做一步',
+      };
+    }),
 
   toggleRoomWall: (wallId) =>
     set((state) => ({
