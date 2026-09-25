@@ -28,7 +28,6 @@ export function Dock({ variant = 'mobile' }: { variant?: 'mobile' | 'desktop' })
   const rotateMode = useProjectStore((state) => state.rotateMode);
   const toggleRotateMode = useProjectStore((state) => state.toggleRotateMode);
   const planLocked = useProjectStore((state) => state.planLocked);
-  const togglePlanLock = useProjectStore((state) => state.togglePlanLock);
 
   // 三类可绘制视图都用这套操作坞，手机端在出图页收起
   if (variant === 'mobile' && tab === 'facade') return null;
@@ -64,15 +63,6 @@ export function Dock({ variant = 'mobile' }: { variant?: 'mobile' | 'desktop' })
           重做
         </button>
         <span className="dock-gap" />
-        {tab === 'plan' ? (
-          <button
-            type="button"
-            className={planLocked ? 'mode-key mode-key-active' : 'mode-key'}
-            onClick={togglePlanLock}
-          >
-            {planLocked ? '平面已锁' : '平面可转'}
-          </button>
-        ) : null}
         <button
           type="button"
           className={rotateMode ? 'mode-key mode-key-active' : 'mode-key'}
@@ -101,6 +91,12 @@ export function Dock({ variant = 'mobile' }: { variant?: 'mobile' | 'desktop' })
         <DirectionPad />
         <NumberPad />
       </div>
+      {variant === 'desktop' ? (
+        <p className="keyboard-hint">
+          键盘：W 北 · A 西 · S 南 · D 东 · Q 上 · Z 下 · 数字直接输入 · 回车落线 ·
+          退格删除 · Ctrl+Z 撤销
+        </p>
+      ) : null}
     </div>
   );
 }

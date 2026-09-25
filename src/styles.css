@@ -195,11 +195,19 @@ body {
   align-items: flex-start;
 }
 
-.dock .direction-pad {
+.dock .direction-cross {
   flex: 0 0 auto;
-  grid-template-columns: repeat(3, 42px) 34px;
+  grid-template-columns: repeat(3, 42px);
   grid-template-rows: repeat(3, 42px);
   gap: 4px;
+}
+
+.dock .direction-vertical {
+  gap: 4px;
+}
+
+.dock .direction-vertical .dir-key {
+  height: 40px;
 }
 
 .dock .number-pad {
@@ -320,10 +328,26 @@ body {
 }
 
 .direction-pad {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.direction-cross {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 54px);
   gap: 6px;
+}
+
+.direction-vertical {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.direction-vertical .dir-key {
+  height: 48px;
 }
 
 .dir-key {
@@ -349,14 +373,6 @@ body {
 
 .dir-key[data-direction="S"] {
   grid-area: 3 / 2;
-}
-
-.dir-key[data-direction="U"] {
-  grid-area: 1 / 4;
-}
-
-.dir-key[data-direction="D"] {
-  grid-area: 2 / 4;
 }
 
 .dir-key-active {
@@ -1004,9 +1020,56 @@ body {
   font-size: 14px;
 }
 
-.dock .direction-pad {
-  grid-template-columns: repeat(3, 46px) 37px;
+.dock .direction-cross {
+  grid-template-columns: repeat(3, 46px);
   grid-template-rows: repeat(3, 46px);
+}
+
+.dock .direction-vertical .dir-key {
+  height: 44px;
+}
+
+/* 画布右下角的锁定按钮：图标按钮，不占操作坞宽度 */
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  color: var(--ink-soft);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.icon-button-active {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* 桌面端分栏拖动条：画布与右侧面板的宽度可以自由拉 */
+.splitter {
+  flex: 0 0 6px;
+  cursor: col-resize;
+  background: var(--line);
+}
+
+.splitter:hover {
+  background: var(--accent);
+}
+
+.keyboard-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-quiet);
 }
 
 .dock .num-key {

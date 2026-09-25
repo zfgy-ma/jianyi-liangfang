@@ -23,6 +23,7 @@ export function PlanCanvas({
   preset,
   lockRotation = false,
   snapYaw = false,
+  showLock = false,
 }: {
   /** 进入这个视图时使用的初始视角 */
   preset: { yaw: number; pitch: number };
@@ -30,6 +31,8 @@ export function PlanCanvas({
   lockRotation?: boolean;
   /** 水平方向锁在东西南北四个正方向 */
   snapYaw?: boolean;
+  /** 在画布右下角显示平面锁定按钮 */
+  showLock?: boolean;
 }) {
   const project = useProjectStore((state) => state.history.present);
   const activePointId = useProjectStore((state) => state.activePointId);
@@ -40,6 +43,8 @@ export function PlanCanvas({
   const roomDraft = useProjectStore((state) => state.roomDraft);
   const toggleRoomWall = useProjectStore((state) => state.toggleRoomWall);
   const rotateMode = useProjectStore((state) => state.rotateMode);
+  const planLocked = useProjectStore((state) => state.planLocked);
+  const togglePlanLock = useProjectStore((state) => state.togglePlanLock);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
@@ -219,6 +224,40 @@ export function PlanCanvas({
           适配视图
         </button>
         <span className="scale-label">{scaleLabel}</span>
+        {showLock ? (
+          <button
+            type="button"
+            className={planLocked ? 'icon-button icon-button-active' : 'icon-button'}
+            title={
+              planLocked
+                ? '平面视角已锁定，点一下解锁后可以旋转'
+                : '平面视角可旋转，点一下锁定'
+            }
+            aria-label="锁定平面视角"
+            aria-pressed={planLocked}
+            data-lock-state={planLocked ? 'locked' : 'unlocked'}
+            onClick={togglePlanLock}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="4" y="11" width="16" height="10" rx="2" />
+              {planLocked ? (
+                <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+              ) : (
+                <path d="M8 11V7a4 4 0 0 1 7.5-2" />
+              )}
+            </svg>
+          </button>
+        ) : null}
       </div>
       <div className="axis-overlay">
         <AxisGizmo viewport={viewport} />

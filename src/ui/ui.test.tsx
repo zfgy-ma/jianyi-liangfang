@@ -79,8 +79,10 @@ describe('界面结构', () => {
     expect(html).toContain('data-direction="D"');
     expect(html).toContain('视角');
     expect(html).toContain('区域');
-    // 平面图默认锁定，操作坞上能看到锁定状态
-    expect(html).toContain('平面已锁');
+    // 上、下两键在十字下方，只占高度
+    expect(html).toContain('direction-vertical');
+    // 锁定按钮已经移到画布右下角，不再占操作坞
+    expect(html).not.toContain('平面已锁');
   });
 
   it('标签页是平面、三维、等轴测、四向立面', () => {
@@ -111,11 +113,13 @@ describe('界面结构', () => {
   it('平面画布渲染出网格与可点选的墙体', () => {
     useProjectStore.getState().replaceProject(closedRoom());
     useProjectStore.getState().setTab('plan');
-    const html = render(<PlanCanvas preset={{ yaw: 0, pitch: 90 }} />);
+    const html = render(<PlanCanvas preset={{ yaw: 0, pitch: 90 }} showLock />);
     expect(html).toContain('plan-canvas');
     expect(html).toContain('plan-grid');
     expect(html).toContain('data-wall-id');
     expect(html).toContain('data-point-id');
+    // 平面锁定按钮在画布右下角，是个图标按钮
+    expect(html).toContain('data-lock-state="locked"');
   });
 
   it('四向立面永远四个框，某一侧没墙也留空框', () => {
@@ -133,7 +137,7 @@ describe('界面结构', () => {
     expect(html).toContain('facade-length');
   });
 
-  it('方位指示器同时画出上下与东西南北', () => {
+  it('方位指示器只画东、南、上三根彩色轴', () => {
     const html = render(
       <AxisGizmo
         viewport={{
@@ -147,9 +151,32 @@ describe('界面结构', () => {
         }}
       />,
     );
-    for (const label of ['北', '南', '东', '西', '上', '下']) {
-      expect(html).toContain(label);
-    }
+    expect(html).toContain('东');
+    expect(html).toContain('南');
+    expect(html).toContain('上');
+    expect(html).not.toContain('西');
+    expect(html).not.toContain('北');
+    expect(html).not.toContain('下');
+  });
+
+  it('平面视角下不显示上下指示', () => {
+    const html = render(
+      <AxisGizmo
+        viewport={{
+          centerX: 0,
+          centerY: 0,
+          scale: 1,
+          width: 800,
+          height: 600,
+          yaw: 0,
+          pitch: 90,
+        }}
+      />,
+    );
+    expect(html).toContain('东');
+    expect(html).toContain('南');
+    // 正俯视时“上”正对观察者，投影成一个点，直接不画
+    expect(html).not.toContain('上');
   });
 
   it('平面锁定默认开启，可以切换', () => {

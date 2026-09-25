@@ -10,8 +10,9 @@ const DIRECTION_TEXT: Record<MoveDirection, string> = {
   D: '下',
 };
 
-/** 平面四向走十字，竖直的上、下单独占一列 */
-const KEY_ORDER: MoveDirection[] = ['N', 'W', 'E', 'S', 'U', 'D'];
+/** 平面四向走十字，竖直的上、下放在十字下方，只占高度 */
+const CROSS_KEYS: MoveDirection[] = ['N', 'W', 'E', 'S'];
+const VERTICAL_KEYS: MoveDirection[] = ['U', 'D'];
 
 /** 自绘方向指盘：北在上、东在右，与坐标系一致 */
 export function DirectionPad() {
@@ -20,22 +21,27 @@ export function DirectionPad() {
   const mode = useProjectStore((state) => state.mode);
   const disabled = mode === 'select';
 
+  const renderKey = (key: MoveDirection) => (
+    <button
+      key={key}
+      type="button"
+      disabled={disabled}
+      aria-pressed={direction === key}
+      data-direction={key}
+      className={direction === key ? 'dir-key dir-key-active' : 'dir-key'}
+      onClick={() => pressDirection(key)}
+    >
+      {DIRECTION_TEXT[key]}
+    </button>
+  );
+
   return (
     <div className="direction-pad" role="group" aria-label="方向指盘">
-      {KEY_ORDER.map((key) => (
-        <button
-          key={key}
-          type="button"
-          disabled={disabled}
-          aria-pressed={direction === key}
-          data-direction={key}
-          className={direction === key ? 'dir-key dir-key-active' : 'dir-key'}
-          onClick={() => pressDirection(key)}
-        >
-          {DIRECTION_TEXT[key]}
-        </button>
-      ))}
-      <span className="direction-center" aria-hidden="true" />
+      <div className="direction-cross">
+        {CROSS_KEYS.map(renderKey)}
+        <span className="direction-center" aria-hidden="true" />
+      </div>
+      <div className="direction-vertical">{VERTICAL_KEYS.map(renderKey)}</div>
     </div>
   );
 }
