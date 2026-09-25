@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useProjectStore } from '../store/useProjectStore';
 import { PlanShapes } from './PlanShapes';
 import { PlanGrid } from './PlanGrid';
+import { resolveTap, type PendingTap } from './tap';
 import {
   fitViewport,
   screenToView,
@@ -38,12 +39,7 @@ export function PlanCanvas({
   /** 正在旋转视角：中键拖动，或手机上的旋转模式 */
   const rotating = useRef(false);
   /** 记录按下时命中的图元，抬起时若没有拖动就当作点选 */
-  const pendingTap = useRef<{
-    pointId: string | null;
-    wallId: string | null;
-    x: number;
-    y: number;
-  } | null>(null);
+  const pendingTap = useRef<PendingTap | null>(null);
   const [size, setSize] = useState({ width: 900, height: 620 });
   const [viewport, setViewport] = useState<Viewport>({
     centerX: 0,
@@ -142,18 +138,18 @@ export function PlanCanvas({
       if (pointers.current.size < 2) pinchDistance.current = null;
       return;
     }
-    const tap = pendingTap.current;
-    const moved = tap ? Math.hypot(event.clientX - tap.x, event.clientY - tap.y) : 0;
-    // 拖动过就不算点选，避免平移画布时误选
-    if (tap && moved <= 8 && pointers.current.size === 1) {
-      if (tap.pointId) {
-        selectPoint(tap.pointId);
-      } else if (tap.wallId) {
-        if (roomPicking) toggleRoomWall(tap.wallId);
-        else selectWall(tap.wallId);
-      } else {
-        selectWall(null);
-      }
+    const tapped = resolveTap(
+      pendingTap.current,
+      { clientX: event.clientX, clientY: event.clientY },
+      pointers.current.size,
+    );
+    if (tapped?.kind === 'point') {
+      selectPoint(tapped.id);
+    } else if (tapped?.kind === 'wall') {
+      if (roomPicking) toggleRoomWall(tapped.id);
+      else selectWall(tapped.id);
+    } else if (tapped?.kind === 'clear') {
+      selectWall(null);
     }
     pendingTap.current = null;
     pointers.current.delete(event.pointerId);
