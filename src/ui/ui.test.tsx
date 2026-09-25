@@ -9,6 +9,7 @@ import { buildFacade } from '../core/facade';
 import { createOriginPoint, createProject, drawWall } from '../core/project';
 import type { Direction, OffsetSide, Project } from '../core/types';
 import { useProjectStore } from '../store/useProjectStore';
+import { App } from '../App';
 import { Dock } from './Dock';
 import { AxisGizmo } from './AxisGizmo';
 import { FacadeCanvas } from './FacadeCanvas';
@@ -18,6 +19,20 @@ import { TabBar } from './TabBar';
 
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
+
+/** 模拟屏幕宽度，用来分别验证桌面端与手机端两套布局 */
+function mockViewport(isDesktop: boolean) {
+  window.matchMedia = ((query: string) => ({
+    matches: isDesktop,
+    media: query,
+    onchange: null,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+    addListener: () => undefined,
+    removeListener: () => undefined,
+    dispatchEvent: () => false,
+  })) as unknown as typeof window.matchMedia;
+}
 
 /** 渲染到内存 DOM 并取回 HTML 结构 */
 function render(element: ReactElement): string {
@@ -64,6 +79,8 @@ describe('界面结构', () => {
     expect(html).toContain('data-direction="D"');
     expect(html).toContain('视角');
     expect(html).toContain('区域');
+    // 平面图默认锁定，操作坞上能看到锁定状态
+    expect(html).toContain('平面已锁');
   });
 
   it('标签页是平面、三维、等轴测、四向立面', () => {
@@ -141,6 +158,24 @@ describe('界面结构', () => {
     expect(useProjectStore.getState().planLocked).toBe(false);
     useProjectStore.getState().togglePlanLock();
     expect(useProjectStore.getState().planLocked).toBe(true);
+  });
+
+  it('桌面端走右侧常驻面板，手机端走底部操作坞', () => {
+    const original = window.matchMedia;
+    try {
+      mockViewport(true);
+      const desktop = render(<App />);
+      expect(desktop).toContain('side-column');
+      expect(desktop).toContain('dock-desktop');
+      expect(desktop).not.toContain('class="dock"');
+
+      mockViewport(false);
+      const mobile = render(<App />);
+      expect(mobile).toContain('class="dock"');
+      expect(mobile).not.toContain('side-column');
+    } finally {
+      window.matchMedia = original;
+    }
   });
 
   it('四向立面卡片带方位标记与逐段长度', () => {
