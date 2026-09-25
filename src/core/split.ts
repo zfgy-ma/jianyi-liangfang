@@ -1,4 +1,4 @@
-import { directionOf, step } from './direction';
+import { direction3Of, step3 } from './direction';
 import { lengthBetween } from './geometry';
 import { findPointIdAt, nextId } from './project';
 import type { PlanPoint, Project } from './types';
@@ -35,9 +35,9 @@ export function splitWallAt(
     return { error: `洞口 ${straddling.id} 正好压在这个位置，请先调整洞口` };
   }
 
-  const direction = directionOf(start, end);
+  const direction = direction3Of(start, end);
   if (!direction) return { error: '这段墙已经不是正交方向，请先修正' };
-  const target = step(start, direction, distance);
+  const target = step3({ x: start.x, y: start.y, z: start.z }, direction, distance);
 
   const points: Record<string, PlanPoint> = { ...project.points };
   const existingId = findPointIdAt(project, target);
@@ -47,6 +47,7 @@ export function splitWallAt(
       id: pointId,
       x: target.x,
       y: target.y,
+      z: target.z,
       origin: { kind: 'onWall', wallId, distance },
     };
   }

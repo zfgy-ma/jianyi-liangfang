@@ -25,8 +25,11 @@ export function Dock() {
   const undoAction = useProjectStore((state) => state.undo);
   const redoAction = useProjectStore((state) => state.redo);
   const setActiveSheet = useProjectStore((state) => state.setActiveSheet);
+  const rotateMode = useProjectStore((state) => state.rotateMode);
+  const toggleRotateMode = useProjectStore((state) => state.toggleRotateMode);
 
-  if (tab !== 'plan') return null;
+  // 平面图与三维视图都是可绘制的工作区，出图页不需要键盘
+  if (tab !== 'plan' && tab !== 'axon') return null;
 
   return (
     <div className="dock">
@@ -57,6 +60,14 @@ export function Dock() {
           onClick={redoAction}
         >
           重做
+        </button>
+        <span className="dock-gap" />
+        <button
+          type="button"
+          className={rotateMode ? 'mode-key mode-key-active' : 'mode-key'}
+          onClick={toggleRotateMode}
+        >
+          视角
         </button>
         <span className="dock-gap" />
         {SHEETS.map((item) => (

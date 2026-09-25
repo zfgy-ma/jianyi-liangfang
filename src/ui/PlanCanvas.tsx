@@ -2,7 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useProjectStore } from '../store/useProjectStore';
 import { PlanShapes } from './PlanShapes';
 import { PlanGrid } from './PlanGrid';
-import { fitViewport, toWorld, type Viewport } from './viewport';
+import {
+  fitViewport,
+  screenToView,
+  snapView,
+  type Viewport,
+} from './viewport';
 
 const MIN_SCALE = 0.002;
 const MAX_SCALE = 2;
@@ -11,7 +16,12 @@ function clampScale(scale: number): number {
   return Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale));
 }
 
-export function PlanCanvas() {
+export function PlanCanvas({
+  preset,
+}: {
+  /** 进入这个视图时使用的初始视角 */
+  preset: { yaw: number; pitch: number };
+}) {
   const project = useProjectStore((state) => state.history.present);
   const activePointId = useProjectStore((state) => state.activePointId);
   const selectedWallId = useProjectStore((state) => state.selectedWallId);
@@ -20,10 +30,13 @@ export function PlanCanvas() {
   const roomPicking = useProjectStore((state) => state.roomPicking);
   const roomDraft = useProjectStore((state) => state.roomDraft);
   const toggleRoomWall = useProjectStore((state) => state.toggleRoomWall);
+  const rotateMode = useProjectStore((state) => state.rotateMode);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinchDistance = useRef<number | null>(null);
+  /** 正在旋转视角：中键拖动，或手机上的旋转模式 */
+  const rotating = useRef(false);
   /** 记录按下时命中的图元，抬起时若没有拖动就当作点选 */
   const pendingTap = useRef<{
     pointId: string | null;
@@ -38,6 +51,8 @@ export function PlanCanvas() {
     scale: 0.05,
     width: 900,
     height: 620,
+    yaw: preset.yaw,
+    pitch: preset.pitch,
   });
 
   useEffect(() => {
@@ -52,14 +67,22 @@ export function PlanCanvas() {
   }, []);
 
   const fit = useCallback(() => {
-    setViewport(fitViewport(project, size.width, size.height));
+    setViewport((current) =>
+      fitViewport(project, size.width, size.height, current.yaw, current.pitch),
+    );
   }, [project, size.width, size.height]);
 
   useEffect(() => {
-    fit();
-  }, [size.width, size.height]);
+    // 切换视图或画布尺寸变化时按预设重新取景；工程内容变化不动视角
+    setViewport(fitViewport(project, size.width, size.height, preset.yaw, preset.pitch));
+  }, [size.width, size.height, preset.yaw, preset.pitch]);
 
   const handlePointerDown = (event: React.PointerEvent<SVGSVGElement>) => {
+    // 中键旋转；手机上用“视角”开关把单指拖动切成旋转
+    if (event.button === 1 || (rotateMode && event.pointerType !== 'mouse')) {
+      rotating.current = true;
+      event.preventDefault();
+    }
     const target = event.target as Element;
     pendingTap.current = {
       pointId: target.getAttribute('data-point-id'),
@@ -81,6 +104,17 @@ export function PlanCanvas() {
     const next = { x: event.clientX, y: event.clientY };
     pointers.current.set(event.pointerId, next);
 
+    if (rotating.current) {
+      const yawStep = (next.x - previous.x) * 0.4;
+      const pitchStep = (next.y - previous.y) * 0.4;
+      setViewport((current) => ({
+        ...current,
+        yaw: current.yaw + yawStep,
+        pitch: Math.max(0, Math.min(90, current.pitch - pitchStep)),
+      }));
+      return;
+    }
+
     if (pointers.current.size === 1) {
       setViewport((current) => ({
         ...current,
@@ -100,6 +134,14 @@ export function PlanCanvas() {
   };
 
   const handlePointerUp = (event: React.PointerEvent<SVGSVGElement>) => {
+    if (rotating.current) {
+      rotating.current = false;
+      setViewport((current) => ({ ...current, ...snapView(current.yaw, current.pitch) }));
+      pendingTap.current = null;
+      pointers.current.delete(event.pointerId);
+      if (pointers.current.size < 2) pinchDistance.current = null;
+      return;
+    }
     const tap = pendingTap.current;
     const moved = tap ? Math.hypot(event.clientX - tap.x, event.clientY - tap.y) : 0;
     // 拖动过就不算点选，避免平移画布时误选
@@ -123,13 +165,13 @@ export function PlanCanvas() {
     const rect = event.currentTarget.getBoundingClientRect();
     const anchor = { x: event.clientX - rect.left, y: event.clientY - rect.top };
     setViewport((current) => {
-      const world = toWorld(current, anchor);
+      const view = screenToView(current, anchor);
       const scale = clampScale(current.scale * (event.deltaY < 0 ? 1.12 : 0.89));
       return {
         ...current,
         scale,
-        centerX: world.x - (anchor.x - current.width / 2) / scale,
-        centerY: world.y + (anchor.y - current.height / 2) / scale,
+        centerX: view.x - (anchor.x - current.width / 2) / scale,
+        centerY: view.y - (anchor.y - current.height / 2) / scale,
       };
     });
   };

@@ -1,10 +1,10 @@
-import { step } from './direction';
+import { step3 } from './direction';
 import type {
-  Direction,
+  MoveDirection,
   OffsetSide,
   PlanPoint,
   Project,
-  Vec2,
+  Vec3,
   Wall,
   WallKind,
 } from './types';
@@ -41,16 +41,18 @@ export function nextId(existing: Record<string, unknown>, prefix: string): strin
 }
 
 /** 查找落在指定坐标上的点，用于把新线接到已有端点上 */
-export function findPointIdAt(project: Project, position: Vec2): string | null {
+export function findPointIdAt(project: Project, position: Vec3): string | null {
   for (const point of Object.values(project.points)) {
-    if (point.x === position.x && point.y === position.y) return point.id;
+    if (point.x === position.x && point.y === position.y && point.z === position.z) {
+      return point.id;
+    }
   }
   return null;
 }
 
 export interface DrawWallInput {
   fromPointId: string;
-  direction: Direction;
+  direction: MoveDirection;
   length: number;
   isHelper?: boolean;
   kind?: WallKind;
@@ -74,7 +76,7 @@ export function createOriginPoint(
   y: number,
 ): { project: Project; pointId: string } {
   const id = nextId(project.points, 'P');
-  const point: PlanPoint = { id, x, y, origin: { kind: 'origin' } };
+  const point: PlanPoint = { id, x, y, z: 0, origin: { kind: 'origin' } };
   return {
     project: { ...project, points: { ...project.points, [id]: point } },
     pointId: id,
@@ -90,7 +92,11 @@ export function drawWall(project: Project, input: DrawWallInput): DrawResult {
   if (!from || input.length <= 0) {
     return { project, wallId: '', endPointId: input.fromPointId };
   }
-  const target = step({ x: from.x, y: from.y }, input.direction, input.length);
+  const target = step3(
+    { x: from.x, y: from.y, z: from.z },
+    input.direction,
+    input.length,
+  );
   const kind: WallKind = input.kind ?? (input.isHelper ? 'inner' : 'outer');
   // 内墙不自动偏移：厚度留到实测后由用户手动设定，避免混进立面与墙厚图
   const thickness = kind === 'outer' ? project.outerThickness : 0;
@@ -103,6 +109,7 @@ export function drawWall(project: Project, input: DrawWallInput): DrawResult {
       id: endPointId,
       x: target.x,
       y: target.y,
+      z: target.z,
       origin: {
         kind: 'step',
         fromPointId: input.fromPointId,

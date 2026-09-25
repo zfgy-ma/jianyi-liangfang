@@ -1,22 +1,35 @@
 /** 四个正交方向：东、南、西、北 */
 export type Direction = 'E' | 'S' | 'W' | 'N';
 
+/** 落笔方向：平面四向，加竖直方向的上、下 */
+export type MoveDirection = Direction | 'U' | 'D';
+
 /** 平面坐标，单位毫米，整数；内部约定北为正 Y，东为正 X */
 export interface Vec2 {
   x: number;
   y: number;
 }
 
+/** 空间坐标，z 为离地高度 */
+export interface Vec3 extends Vec2 {
+  z: number;
+}
+
+/** 可参与长度计算的点：只有平面坐标时按 z=0 处理 */
+export interface PointLike {
+  x: number;
+  y: number;
+  z?: number;
+}
+
 /** 点必须有可追溯来源，禁止凭空出现 */
 export type PointOrigin =
   | { kind: 'origin' }
-  | { kind: 'step'; fromPointId: string; direction: Direction; length: number }
+  | { kind: 'step'; fromPointId: string; direction: MoveDirection; length: number }
   | { kind: 'onWall'; wallId: string; distance: number };
 
-export interface PlanPoint {
+export interface PlanPoint extends Vec3 {
   id: string;
-  x: number;
-  y: number;
   origin: PointOrigin;
 }
 

@@ -3,7 +3,7 @@ import { closureGap, divideDistance, lengthBetween } from './geometry';
 import { createOriginPoint, createProject, drawWall } from './project';
 import { addOpening } from './opening';
 import { splitWallAt } from './split';
-import type { Direction, Project } from './types';
+import type { MoveDirection, Project } from './types';
 
 /** 从一个有明确来源的原点开始，之后只给方向和长度 */
 function begin() {
@@ -14,7 +14,7 @@ function begin() {
 function draw(
   project: Project,
   fromPointId: string,
-  direction: Direction,
+  direction: MoveDirection,
   length: number,
 ) {
   const result = drawWall(project, { fromPointId, direction, length });
@@ -28,6 +28,25 @@ function wallLengths(project: Project): number[] {
 }
 
 describe('按方向与长度落线', () => {
+  it('向上落线生成竖直墙段：平面坐标不动，高度增加', () => {
+    const start = begin();
+    const up = draw(start.project, start.pointId, 'U', 2800);
+    const bottom = start.project.points[start.pointId];
+    const top = up.project.points[up.pointId];
+    expect([top.x, top.y, top.z]).toEqual([0, 0, 2800]);
+    expect(lengthBetween(bottom, top)).toBe(2800);
+  });
+
+  it('上、东、下三笔能画出一面墙的立面轮廓', () => {
+    const start = begin();
+    const up = draw(start.project, start.pointId, 'U', 2800);
+    const across = draw(up.project, up.pointId, 'E', 4000);
+    const down = draw(across.project, across.pointId, 'D', 2800);
+    const corner = down.project.points[down.pointId];
+    expect([corner.x, corner.y, corner.z]).toEqual([4000, 0, 0]);
+    expect(wallLengths(down.project)).toEqual([2800, 4000, 2800]);
+  });
+
   it('向北 4000，坐标与长度都对得上', () => {
     const start = begin();
     const first = draw(start.project, start.pointId, 'N', 4000);

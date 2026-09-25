@@ -94,6 +94,8 @@ export function buildFacade(project: Project, direction: ViewDirection): FacadeV
     if (normal.x * view.x + normal.y * view.y <= 0) continue;
     const start = project.points[wall.startPointId];
     const end = project.points[wall.endPointId];
+    // 竖直方向的墙是立面线条，不参与平面立面投影
+    if (start.z !== end.z) continue;
     const direction2 = directionOf(start, end);
     if (!direction2) continue;
     const height = wall.height ?? project.wallHeight;

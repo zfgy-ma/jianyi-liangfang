@@ -1,4 +1,4 @@
-import { directionOf } from './direction';
+import { direction3Of } from './direction';
 import { closureGap, lengthBetween } from './geometry';
 import type { Project, Vec2 } from './types';
 
@@ -23,7 +23,7 @@ export function findWallConflicts(project: Project): WallConflict[] {
       conflicts.push({ wallId: wall.id, reason: 'zeroLength' });
       continue;
     }
-    if (!directionOf(start, end)) {
+    if (!direction3Of(start, end)) {
       conflicts.push({ wallId: wall.id, reason: 'nonOrthogonal' });
     }
   }

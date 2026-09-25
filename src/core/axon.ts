@@ -98,6 +98,19 @@ export function buildAxon(project: Project, angleDeg = 30): AxonDrawing {
     }
   }
 
+  // 用户用上下方向手画的立面线条（含离地高度不为零的线段）也进轴测图
+  for (const wall of Object.values(project.walls)) {
+    const start = project.points[wall.startPointId];
+    const end = project.points[wall.endPointId];
+    if (!start || !end) continue;
+    if (start.z === 0 && end.z === 0) continue;
+    push(
+      { x: start.x, y: start.y, z: start.z },
+      { x: end.x, y: end.y, z: end.z },
+      'WALL',
+    );
+  }
+
   if (lines.length === 0) {
     return { lines, minX: 0, minY: 0, maxX: 0, maxY: 0 };
   }

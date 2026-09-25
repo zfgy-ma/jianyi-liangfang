@@ -1,12 +1,5 @@
-import type { Direction } from '../core/types';
+import { MOVE_LABEL } from '../core/direction';
 import { useProjectStore } from '../store/useProjectStore';
-
-const DIRECTION_TEXT: Record<Direction, string> = {
-  N: '北',
-  E: '东',
-  S: '南',
-  W: '西',
-};
 
 const DIGITS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
@@ -56,7 +49,7 @@ export function NumberPad() {
         disabled={!ready}
         onClick={confirmDraw}
       >
-        {direction ? `向${DIRECTION_TEXT[direction]}落线` : '请先选方向'}
+        {direction ? `向${MOVE_LABEL[direction]}落线` : '请先选方向'}
       </button>
     </div>
   );

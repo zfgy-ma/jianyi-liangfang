@@ -197,8 +197,8 @@ body {
 
 .dock .direction-pad {
   flex: 0 0 auto;
-  grid-template-columns: repeat(3, 46px);
-  grid-template-rows: repeat(3, 46px);
+  grid-template-columns: repeat(3, 42px) 34px;
+  grid-template-rows: repeat(3, 42px);
   gap: 4px;
 }
 
@@ -321,7 +321,7 @@ body {
 
 .direction-pad {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   grid-template-rows: repeat(3, 54px);
   gap: 6px;
 }
@@ -349,6 +349,14 @@ body {
 
 .dir-key[data-direction="S"] {
   grid-area: 3 / 2;
+}
+
+.dir-key[data-direction="U"] {
+  grid-area: 1 / 4;
+}
+
+.dir-key[data-direction="D"] {
+  grid-area: 2 / 4;
 }
 
 .dir-key-active {
@@ -749,6 +757,12 @@ body {
   cursor: pointer;
 }
 
+.wall-hit-line {
+  stroke: transparent;
+  stroke-width: 16;
+  cursor: pointer;
+}
+
 .opening-window line {
   stroke: var(--accent);
   stroke-width: 1.5;
@@ -796,13 +810,14 @@ body {
 
 .facade-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   gap: 10px;
   padding: 12px;
   overflow: auto;
 }
 
 .facade-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -815,13 +830,26 @@ body {
 
 .facade-card svg {
   width: 100%;
-  height: 200px;
+  height: 240px;
 }
 
 .facade-card figcaption {
   font-size: 12px;
   color: var(--ink-soft);
   text-align: center;
+}
+
+.facade-badge {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.facade-length {
+  fill: var(--ink-soft);
 }
 
 .axon-wall {

@@ -1,6 +1,6 @@
-import { directionOf, step } from './direction';
+import { direction3Of, step3 } from './direction';
 import { lengthBetween } from './geometry';
-import type { PlanPoint, Project, Vec2, WallKind } from './types';
+import type { PlanPoint, Project, Vec3, WallKind } from './types';
 
 /** 沿链条平移下游所有点，锚点保持不动 */
 function translateDownstream(
@@ -8,7 +8,7 @@ function translateDownstream(
   startPointId: string,
   excludeWallId: string,
   anchorPointId: string,
-  delta: Vec2,
+  delta: Vec3,
 ): Record<string, PlanPoint> {
   const points: Record<string, PlanPoint> = { ...project.points };
   const visited = new Set<string>([anchorPointId]);
@@ -19,7 +19,12 @@ function translateDownstream(
     visited.add(currentId);
     const current = points[currentId];
     if (!current) continue;
-    points[currentId] = { ...current, x: current.x + delta.x, y: current.y + delta.y };
+    points[currentId] = {
+      ...current,
+      x: current.x + delta.x,
+      y: current.y + delta.y,
+      z: current.z + delta.z,
+    };
     for (const wall of Object.values(project.walls)) {
       if (wall.id === excludeWallId) continue;
       if (wall.startPointId === currentId) queue.push(wall.endPointId);
@@ -43,13 +48,17 @@ export function updateWallLength(
   const start = project.points[wall.startPointId];
   const end = project.points[wall.endPointId];
   if (!start || !end) return project;
-  const direction = directionOf(start, end);
+  const direction = direction3Of(start, end);
   if (!direction) return project;
   const current = lengthBetween(start, end);
   if (current === newLength) return project;
 
-  const target = step({ x: start.x, y: start.y }, direction, newLength);
-  const delta = { x: target.x - end.x, y: target.y - end.y };
+  const target = step3({ x: start.x, y: start.y, z: start.z }, direction, newLength);
+  const delta = {
+    x: target.x - end.x,
+    y: target.y - end.y,
+    z: target.z - end.z,
+  };
   const points = translateDownstream(
     project,
     wall.endPointId,
@@ -61,6 +70,7 @@ export function updateWallLength(
     ...points[wall.endPointId],
     x: target.x,
     y: target.y,
+    z: target.z,
     origin: {
       kind: 'step',
       fromPointId: wall.startPointId,

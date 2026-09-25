@@ -2,22 +2,34 @@ import { buildFacade, type FacadeView, type ViewDirection } from '../core/facade
 import { useProjectStore } from '../store/useProjectStore';
 
 function FacadePreview({ view }: { view: FacadeView }) {
-  const pad = Math.max(view.totalWidth, view.maxHeight) * 0.08;
+  const pad = Math.max(view.totalWidth, view.maxHeight) * 0.1;
+  const labelSize = Math.max(view.totalWidth, view.maxHeight) * 0.035;
   return (
     <figure className="facade-card">
+      <span className="facade-badge">{view.label.replace('立面', '')}</span>
       <svg
         viewBox={`${-pad} ${-pad} ${view.totalWidth + pad * 2} ${view.maxHeight + pad * 2}`}
         preserveAspectRatio="xMidYMid meet"
       >
         {view.walls.map((wall) => (
-          <rect
-            key={wall.wallId}
-            className="elevation-wall"
-            x={wall.left}
-            y={view.maxHeight - wall.height}
-            width={wall.width}
-            height={wall.height}
-          />
+          <g key={wall.wallId}>
+            <rect
+              className="elevation-wall"
+              x={wall.left}
+              y={view.maxHeight - wall.height}
+              width={wall.width}
+              height={wall.height}
+            />
+            <text
+              className="facade-length"
+              x={wall.left + wall.width / 2}
+              y={view.maxHeight + labelSize * 1.7}
+              fontSize={labelSize}
+              textAnchor="middle"
+            >
+              {wall.width}
+            </text>
+          </g>
         ))}
         {view.openings.map((opening) => (
           <rect
@@ -31,7 +43,7 @@ function FacadePreview({ view }: { view: FacadeView }) {
         ))}
       </svg>
       <figcaption>
-        {view.label} · 宽 {view.totalWidth}mm · 高 {view.maxHeight}mm
+        {view.label} · 总宽 {view.totalWidth}mm · 墙高 {view.maxHeight}mm
       </figcaption>
     </figure>
   );

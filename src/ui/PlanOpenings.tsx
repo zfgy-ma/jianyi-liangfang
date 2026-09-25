@@ -1,5 +1,5 @@
 import { DIRECTION_VECTOR, directionOf } from '../core/direction';
-import type { Opening, Project, Vec2, Wall } from '../core/types';
+import type { Opening, PointLike, Project, Vec2, Vec3, Wall } from '../core/types';
 import { leftNormal } from '../core/wallOffset';
 import { toScreen, type Viewport } from './viewport';
 
@@ -11,13 +11,21 @@ interface PlanOpeningsProps {
   conflictIds: Set<string>;
 }
 
-/** 沿墙推进一段距离后的世界坐标 */
-function along(start: Vec2, direction: Vec2, distance: number): Vec2 {
-  return { x: start.x + direction.x * distance, y: start.y + direction.y * distance };
+/** 沿墙推进一段距离后的世界坐标，保留原始高度 */
+function along(start: PointLike, direction: Vec2, distance: number): Vec3 {
+  return {
+    x: start.x + direction.x * distance,
+    y: start.y + direction.y * distance,
+    z: start.z ?? 0,
+  };
 }
 
-function offsetPoint(point: Vec2, normal: Vec2, distance: number): Vec2 {
-  return { x: point.x + normal.x * distance, y: point.y + normal.y * distance };
+function offsetPoint(point: Vec3, normal: Vec2, distance: number): Vec3 {
+  return {
+    x: point.x + normal.x * distance,
+    y: point.y + normal.y * distance,
+    z: point.z,
+  };
 }
 
 /** 门扇的开启弧线，用折线近似，避免受坐标翻转影响 */
@@ -55,7 +63,39 @@ export function PlanOpenings({
         const end = project.points[wall.endPointId];
         if (!start || !end) return null;
         const direction = directionOf(start, end);
-        if (!direction) return null;
+        if (!direction) {
+          // 竖直方向的墙：投影后就是一段线，没有墙厚与门窗符号
+          const from = sp(start);
+          const to = sp(end);
+          const verticalClass = [
+            'wall-line',
+            wall.isHelper ? 'wall-line-helper' : '',
+            conflictIds.has(wall.id) ? 'wall-line-conflict' : '',
+            selectedWallId === wall.id ? 'wall-line-selected' : '',
+            draftIds.has(wall.id) ? 'wall-line-drafted' : '',
+          ]
+            .filter(Boolean)
+            .join(' ');
+          return (
+            <g key={wall.id}>
+              <line
+                className={verticalClass}
+                x1={from.x}
+                y1={from.y}
+                x2={to.x}
+                y2={to.y}
+              />
+              <line
+                className="wall-hit-line"
+                data-wall-id={wall.id}
+                x1={from.x}
+                y1={from.y}
+                x2={to.x}
+                y2={to.y}
+              />
+            </g>
+          );
+        }
         const unit = DIRECTION_VECTOR[direction];
         const normalSign = wall.offsetSide === 'left' ? 1 : -1;
         const baseNormal = leftNormal(start, end);

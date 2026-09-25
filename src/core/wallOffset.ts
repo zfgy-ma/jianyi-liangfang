@@ -1,6 +1,6 @@
 import { DIRECTION_VECTOR, directionOf } from './direction';
 import { add, intersectLines } from './geometry';
-import type { OffsetSide, Project, Vec2, Wall } from './types';
+import type { OffsetSide, Project, Vec2, Vec3, Wall } from './types';
 
 /** 沿墙方向求左法线；北为正 Y，故东向的左侧是北 */
 export function leftNormal(from: Vec2, to: Vec2): Vec2 {
@@ -28,11 +28,14 @@ export interface WallBody {
   polygon: Vec2[];
 }
 
-function endpoints(project: Project, wall: Wall): { start: Vec2; end: Vec2 } | null {
+function endpoints(project: Project, wall: Wall): { start: Vec3; end: Vec3 } | null {
   const start = project.points[wall.startPointId];
   const end = project.points[wall.endPointId];
   if (!start || !end) return null;
-  return { start: { x: start.x, y: start.y }, end: { x: end.x, y: end.y } };
+  return {
+    start: { x: start.x, y: start.y, z: start.z },
+    end: { x: end.x, y: end.y, z: end.z },
+  };
 }
 
 function neighborWalls(project: Project, pointId: string, excludeWallId: string): Wall[] {
@@ -82,6 +85,8 @@ export function buildWallBodies(project: Project): WallBody[] {
     if (wall.isHelper || wall.thickness <= 0) continue;
     const ends = endpoints(project, wall);
     if (!ends) continue;
+    // 竖直方向的墙是立面线条，不参与墙厚与转角
+    if (ends.start.z !== ends.end.z) continue;
     const offset = offsetVector(ends.start, ends.end, wall.offsetSide, wall.thickness);
     bodies.push({
       wallId: wall.id,

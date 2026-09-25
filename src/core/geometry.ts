@@ -1,5 +1,5 @@
 import { directionOf, step } from './direction';
-import type { Vec2 } from './types';
+import type { PointLike, Vec2 } from './types';
 
 export function add(a: Vec2, b: Vec2): Vec2 {
   return { x: a.x + b.x, y: a.y + b.y };
@@ -9,9 +9,10 @@ export function sub(a: Vec2, b: Vec2): Vec2 {
   return { x: a.x - b.x, y: a.y - b.y };
 }
 
-/** 两点距离，四舍五入到整数毫米 */
-export function lengthBetween(a: Vec2, b: Vec2): number {
-  return Math.round(Math.hypot(b.x - a.x, b.y - a.y));
+/** 两点距离，含高度差，四舍五入到整数毫米 */
+export function lengthBetween(a: PointLike, b: PointLike): number {
+  const dz = (b.z ?? 0) - (a.z ?? 0);
+  return Math.round(Math.hypot(b.x - a.x, b.y - a.y, dz));
 }
 
 /** 在墙上按距起点的距离取点，越界返回 null */

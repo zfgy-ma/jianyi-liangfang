@@ -2,13 +2,13 @@ import { useEffect } from 'react';
 import { saveProject } from './io/storage';
 import { useProjectStore } from './store/useProjectStore';
 import { FileMenu } from './ui/FileMenu';
-import { AxonCanvas } from './ui/AxonCanvas';
 import { Dock } from './ui/Dock';
 import { FacadeCanvas } from './ui/FacadeCanvas';
 import { PlanCanvas } from './ui/PlanCanvas';
 import { Sheet } from './ui/Sheet';
 import { StatusBar } from './ui/StatusBar';
 import { TabBar } from './ui/TabBar';
+import { ISO_VIEW, PLAN_VIEW } from './ui/viewport';
 
 export function App() {
   const project = useProjectStore((state) => state.history.present);
@@ -33,9 +33,9 @@ export function App() {
         <FileMenu />
       </header>
       <main className="app-main">
-        {tab === 'plan' ? <PlanCanvas /> : null}
+        {tab === 'plan' ? <PlanCanvas preset={PLAN_VIEW} /> : null}
+        {tab === 'axon' ? <PlanCanvas preset={ISO_VIEW} /> : null}
         {tab === 'facade' ? <FacadeCanvas /> : null}
-        {tab === 'axon' ? <AxonCanvas /> : null}
         <Sheet />
       </main>
       <StatusBar />

@@ -2,8 +2,8 @@ import { useProjectStore, type TabKey } from '../store/useProjectStore';
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'plan', label: '平面图' },
+  { key: 'axon', label: '三维视图' },
   { key: 'facade', label: '四向立面' },
-  { key: 'axon', label: '等轴测' },
 ];
 
 export function TabBar() {
