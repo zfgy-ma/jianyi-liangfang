@@ -1,0 +1,92 @@
+/**
+ * 界面结构测试：在真实 DOM 里渲染组件，确认手机端布局的关键元素没有丢。
+ * @vitest-environment happy-dom
+ */
+import { act, type ReactElement } from 'react';
+import { createRoot } from 'react-dom/client';
+import { describe, expect, it } from 'vitest';
+import { buildFacade } from '../core/facade';
+import { createOriginPoint, createProject, drawWall } from '../core/project';
+import type { Direction, OffsetSide, Project } from '../core/types';
+import { useProjectStore } from '../store/useProjectStore';
+import { Dock } from './Dock';
+import { FacadeCanvas } from './FacadeCanvas';
+import { TabBar } from './TabBar';
+
+(globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
+  true;
+
+/** 渲染到内存 DOM 并取回 HTML 结构 */
+function render(element: ReactElement): string {
+  const container = document.createElement('div');
+  document.body.append(container);
+  const root = createRoot(container);
+  act(() => {
+    root.render(element);
+  });
+  const html = container.innerHTML;
+  act(() => {
+    root.unmount();
+  });
+  container.remove();
+  return html;
+}
+
+function draw(
+  project: Project,
+  fromPointId: string,
+  direction: Direction,
+  length: number,
+  offsetSide: OffsetSide = 'right',
+) {
+  const result = drawWall(project, { fromPointId, direction, length, offsetSide });
+  return { project: result.project, pointId: result.endPointId };
+}
+
+/** 一圈外墙，用来验证四向立面 */
+function closedRoom(): Project {
+  const origin = createOriginPoint(createProject('界面测试'), 0, 0);
+  const south = draw(origin.project, origin.pointId, 'E', 4000);
+  const east = draw(south.project, south.pointId, 'N', 3000);
+  const north = draw(east.project, east.pointId, 'W', 4000);
+  const west = draw(north.project, north.pointId, 'S', 3000);
+  return west.project;
+}
+
+describe('界面结构', () => {
+  it('方向指盘含上下两键，立体墙有入口', () => {
+    useProjectStore.getState().setTab('plan');
+    const html = render(<Dock />);
+    expect(html).toContain('data-direction="U"');
+    expect(html).toContain('data-direction="D"');
+    expect(html).toContain('视角');
+    expect(html).toContain('区域');
+  });
+
+  it('标签页只剩平面、三维、四向立面', () => {
+    const html = render(<TabBar />);
+    expect(html).toContain('平面图');
+    expect(html).toContain('三维视图');
+    expect(html).toContain('四向立面');
+    expect(html).not.toContain('单墙立面');
+  });
+
+  it('四向立面卡片带方位标记与逐段长度', () => {
+    useProjectStore.getState().replaceProject(closedRoom());
+    expect(buildFacade(closedRoom(), 'E').walls).toHaveLength(1);
+    expect(Object.keys(useProjectStore.getState().history.present.walls)).toHaveLength(4);
+    const html = render(<FacadeCanvas />);
+    expect(html).toContain('facade-badge');
+    expect(html).toContain('facade-length');
+    expect(html).toContain('东立面');
+    expect(html).toContain('北立面');
+    expect(html).toContain('总宽');
+  });
+
+  it('切到出图页时不渲染操作坞，操作坞不会占屏幕', () => {
+    useProjectStore.getState().setTab('facade');
+    expect(useProjectStore.getState().tab).toBe('facade');
+    expect(render(<Dock />)).toBe('');
+    useProjectStore.getState().setTab('plan');
+  });
+});
