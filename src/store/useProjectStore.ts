@@ -16,7 +16,7 @@ import { splitWallAt } from '../core/split';
 import type { MoveDirection, OpeningKind, Project, WallKind } from '../core/types';
 
 export type InputMode = 'wall' | 'helper' | 'select';
-export type TabKey = 'plan' | 'elevation' | 'facade' | 'axon';
+export type TabKey = 'plan' | 'three' | 'iso' | 'facade';
 /** 底部浮层面板：手机上用完即收，避免页面越滚越长 */
 export type SheetKey = 'none' | 'project' | 'rooms' | 'wall' | 'opening';
 /** 开局选角只决定录入习惯，不影响坐标系原点 */
@@ -30,6 +30,8 @@ export interface ProjectState {
   direction: MoveDirection | null;
   digits: string;
   tab: TabKey;
+  /** 锁定平面图：视角固定正俯视，不能旋转 */
+  planLocked: boolean;
   activeSheet: SheetKey;
   startCorner: CornerKey;
   /** 圈定区域时按顺序收集的墙 id */
@@ -42,6 +44,7 @@ export interface ProjectState {
   /** 手机上没有中键，用这个开关把单指拖动切换成旋转视角 */
   rotateMode: boolean;
   setTab: (tab: TabKey) => void;
+  togglePlanLock: () => void;
   setActiveSheet: (sheet: SheetKey) => void;
   setMode: (mode: InputMode) => void;
   setStartCorner: (corner: CornerKey) => void;
@@ -114,6 +117,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   direction: null,
   digits: '',
   tab: 'plan',
+  planLocked: true,
   activeSheet: 'none',
   startCorner: 'SE',
   roomDraft: [],
@@ -124,6 +128,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   rotateMode: false,
 
   setTab: (tab) => set({ tab }),
+  togglePlanLock: () => set((state) => ({ planLocked: !state.planLocked })),
   setActiveSheet: (sheet) => set({ activeSheet: sheet }),
   setMode: (mode) => set({ mode, selectedWallId: null, direction: null, digits: '' }),
   setStartCorner: (corner) => set({ startCorner: corner }),

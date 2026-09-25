@@ -2,15 +2,43 @@ import { buildFacade, type FacadeView, type ViewDirection } from '../core/facade
 import { useProjectStore } from '../store/useProjectStore';
 
 function FacadePreview({ view }: { view: FacadeView }) {
-  const pad = Math.max(view.totalWidth, view.maxHeight) * 0.1;
-  const labelSize = Math.max(view.totalWidth, view.maxHeight) * 0.035;
+  const span = Math.max(view.totalWidth, view.maxHeight, 1000);
+  const pad = span * 0.14;
+  // 尺寸数字放大，放在尺寸线中间，线在数字处断开
+  const labelSize = span * 0.055;
+  const dimensionY = view.maxHeight + labelSize * 1.4;
+  const empty = view.walls.length === 0;
+
   return (
-    <figure className="facade-card">
+    <figure className={empty ? 'facade-card facade-card-empty' : 'facade-card'}>
       <span className="facade-badge">{view.label.replace('立面', '')}</span>
       <svg
-        viewBox={`${-pad} ${-pad} ${view.totalWidth + pad * 2} ${view.maxHeight + pad * 2}`}
+        viewBox={`${-pad} ${-pad} ${Math.max(view.totalWidth, 1000) + pad * 2} ${
+          view.maxHeight + pad * 2
+        }`}
         preserveAspectRatio="xMidYMid meet"
       >
+        {empty ? (
+          <>
+            <rect
+              className="facade-empty-frame"
+              x={0}
+              y={0}
+              width={Math.max(view.totalWidth, 1000)}
+              height={Math.max(view.maxHeight, 1000)}
+            />
+            <text
+              className="facade-empty-text"
+              x={Math.max(view.totalWidth, 1000) / 2}
+              y={Math.max(view.maxHeight, 1000) / 2}
+              fontSize={span * 0.06}
+              textAnchor="middle"
+            >
+              这一侧没有外墙
+            </text>
+          </>
+        ) : null}
+
         {view.walls.map((wall) => (
           <g key={wall.wallId}>
             <rect
@@ -20,10 +48,38 @@ function FacadePreview({ view }: { view: FacadeView }) {
               width={wall.width}
               height={wall.height}
             />
+            <line
+              className="facade-dimension"
+              x1={wall.left}
+              y1={dimensionY - labelSize * 0.35}
+              x2={wall.left}
+              y2={dimensionY + labelSize * 0.35}
+            />
+            <line
+              className="facade-dimension"
+              x1={wall.left + wall.width}
+              y1={dimensionY - labelSize * 0.35}
+              x2={wall.left + wall.width}
+              y2={dimensionY + labelSize * 0.35}
+            />
+            <line
+              className="facade-dimension"
+              x1={wall.left}
+              y1={dimensionY}
+              x2={wall.left + wall.width / 2 - labelSize * 1.3}
+              y2={dimensionY}
+            />
+            <line
+              className="facade-dimension"
+              x1={wall.left + wall.width / 2 + labelSize * 1.3}
+              y1={dimensionY}
+              x2={wall.left + wall.width}
+              y2={dimensionY}
+            />
             <text
               className="facade-length"
               x={wall.left + wall.width / 2}
-              y={view.maxHeight + labelSize * 1.7}
+              y={dimensionY + labelSize * 0.38}
               fontSize={labelSize}
               textAnchor="middle"
             >
@@ -43,7 +99,9 @@ function FacadePreview({ view }: { view: FacadeView }) {
         ))}
       </svg>
       <figcaption>
-        {view.label} · 总宽 {view.totalWidth}mm · 墙高 {view.maxHeight}mm
+        {empty
+          ? `${view.label} · 暂无外墙`
+          : `${view.label} · 总宽 ${view.totalWidth}mm · 墙高 ${view.maxHeight}mm`}
       </figcaption>
     </figure>
   );
@@ -51,19 +109,9 @@ function FacadePreview({ view }: { view: FacadeView }) {
 
 export function FacadeCanvas() {
   const project = useProjectStore((state) => state.history.present);
+  // 四个方向始终都出图，某一侧没有外墙也留一个空框
   const views = (['E', 'S', 'W', 'N'] as ViewDirection[])
-    .map((direction) => buildFacade(project, direction))
-    .filter((view) => view.walls.length > 0);
-
-  if (views.length === 0) {
-    return (
-      <div className="canvas-wrap canvas-empty">
-        <p className="hint">
-          还没有朝外的墙体。先回到平面图标出外墙，并把墙厚方向设为室外侧。
-        </p>
-      </div>
-    );
-  }
+    .map((direction) => buildFacade(project, direction));
 
   return (
     <div className="canvas-wrap facade-grid">

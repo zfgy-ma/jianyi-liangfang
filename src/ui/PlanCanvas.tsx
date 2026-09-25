@@ -2,10 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useProjectStore } from '../store/useProjectStore';
 import { PlanShapes } from './PlanShapes';
 import { PlanGrid } from './PlanGrid';
+import { AxisGizmo } from './AxisGizmo';
 import { resolveTap, type PendingTap } from './tap';
 import {
   fitViewport,
   screenToView,
+  snapYawToCardinal,
   snapView,
   type Viewport,
 } from './viewport';
@@ -19,9 +21,15 @@ function clampScale(scale: number): number {
 
 export function PlanCanvas({
   preset,
+  lockRotation = false,
+  snapYaw = false,
 }: {
   /** 进入这个视图时使用的初始视角 */
   preset: { yaw: number; pitch: number };
+  /** 锁定视角：不能旋转，只能平移缩放 */
+  lockRotation?: boolean;
+  /** 水平方向锁在东西南北四个正方向 */
+  snapYaw?: boolean;
 }) {
   const project = useProjectStore((state) => state.history.present);
   const activePointId = useProjectStore((state) => state.activePointId);
@@ -75,7 +83,10 @@ export function PlanCanvas({
 
   const handlePointerDown = (event: React.PointerEvent<SVGSVGElement>) => {
     // 中键旋转；手机上用“视角”开关把单指拖动切成旋转
-    if (event.button === 1 || (rotateMode && event.pointerType !== 'mouse')) {
+    if (
+      !lockRotation &&
+      (event.button === 1 || (rotateMode && event.pointerType !== 'mouse'))
+    ) {
       rotating.current = true;
       event.preventDefault();
     }
@@ -132,7 +143,14 @@ export function PlanCanvas({
   const handlePointerUp = (event: React.PointerEvent<SVGSVGElement>) => {
     if (rotating.current) {
       rotating.current = false;
-      setViewport((current) => ({ ...current, ...snapView(current.yaw, current.pitch) }));
+      setViewport((current) => {
+        const snapped = snapView(current.yaw, current.pitch);
+        return {
+          ...current,
+          ...snapped,
+          yaw: snapYaw ? snapYawToCardinal(snapped.yaw) : snapped.yaw,
+        };
+      });
       pendingTap.current = null;
       pointers.current.delete(event.pointerId);
       if (pointers.current.size < 2) pinchDistance.current = null;
@@ -201,6 +219,9 @@ export function PlanCanvas({
           适配视图
         </button>
         <span className="scale-label">{scaleLabel}</span>
+      </div>
+      <div className="axis-overlay">
+        <AxisGizmo viewport={viewport} />
       </div>
     </div>
   );

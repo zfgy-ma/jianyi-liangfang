@@ -869,3 +869,156 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== 方位指示器：跟着视角一起转 ===== */
+.axis-overlay {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  pointer-events: none;
+}
+
+.axis-ring {
+  fill: rgba(255, 255, 255, 0.82);
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.axis-arm {
+  stroke: var(--ink-soft);
+  stroke-width: 1.5;
+}
+
+.axis-label {
+  fill: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.axis-dot {
+  fill: var(--ink-soft);
+}
+
+/* ===== 桌面端：右侧常驻面板，不套用手机端的浮层 ===== */
+.side-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 360px;
+  flex-shrink: 0;
+  padding: 12px;
+  overflow-y: auto;
+  background: var(--surface-sunken);
+  border-left: 1px solid var(--line);
+}
+
+.dock-desktop {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.dock-desktop .dock-row {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+/* ===== 四向立面：尺寸线中间断开，数字坐在断口里 ===== */
+.facade-dimension {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.facade-card-empty .facade-empty-frame {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 2;
+  stroke-dasharray: 12 8;
+  vector-effect: non-scaling-stroke;
+}
+
+.facade-empty-text {
+  fill: var(--ink-quiet);
+}
+
+/* ===== 整体放大 10%：覆盖关键控件尺寸 ===== */
+.panel {
+  padding: 13px;
+  gap: 11px;
+}
+
+.panel-title {
+  font-size: 15px;
+}
+
+.hint {
+  font-size: 13px;
+}
+
+.mode-key {
+  padding: 7px 11px;
+  font-size: 14px;
+}
+
+.tool-button {
+  padding: 10px 13px;
+  font-size: 14px;
+}
+
+.dir-key {
+  font-size: 22px;
+}
+
+.num-key {
+  height: 48px;
+  font-size: 19px;
+}
+
+.confirm-key {
+  height: 53px;
+  font-size: 18px;
+}
+
+.number-value {
+  font-size: 29px;
+}
+
+.tab-key {
+  padding: 8px 15px;
+  font-size: 14px;
+}
+
+.status-bar {
+  font-size: 13px;
+}
+
+.field-value {
+  font-size: 18px;
+}
+
+.room-name,
+.room-note,
+.project-item {
+  font-size: 14px;
+}
+
+.dock .direction-pad {
+  grid-template-columns: repeat(3, 46px) 37px;
+  grid-template-rows: repeat(3, 46px);
+}
+
+.dock .num-key {
+  height: 37px;
+  font-size: 17px;
+}
+
+.dock .confirm-key {
+  height: 42px;
+  font-size: 15px;
+}
+
+.dock .number-value {
+  font-size: 22px;
+}

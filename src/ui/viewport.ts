@@ -19,7 +19,10 @@ export interface Viewport {
 }
 
 export const PLAN_VIEW = { yaw: 0, pitch: 90 };
-export const ISO_VIEW = { yaw: 38, pitch: 38 };
+/** 三维视图：默认斜俯视，但水平方向锁在东西南北 */
+export const THREE_VIEW = { yaw: 0, pitch: 45 };
+/** 等轴测：方位 45°、俯仰 35.264°，标准轴测角度 */
+export const ISO_VIEW = { yaw: 45, pitch: 35.264 };
 
 /** 世界坐标 → 视图平面坐标（毫米） */
 export function projectPoint(viewport: Viewport, point: PointLike): Vec2 {
@@ -118,4 +121,10 @@ export function snapView(
     if (Math.abs(pitch - angle) <= 8) nextPitch = angle;
   }
   return { yaw: nextYaw, pitch: Math.max(0, Math.min(90, nextPitch)) };
+}
+
+/** 把方位角吸附到东西南北四个正方向 */
+export function snapYawToCardinal(yaw: number): number {
+  // 加 0 是为了把 -0 归一成 0
+  return Math.round(yaw / 90) * 90 + 0;
 }

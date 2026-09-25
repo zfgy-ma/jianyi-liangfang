@@ -10,6 +10,7 @@ import { createOriginPoint, createProject, drawWall } from '../core/project';
 import type { Direction, OffsetSide, Project } from '../core/types';
 import { useProjectStore } from '../store/useProjectStore';
 import { Dock } from './Dock';
+import { AxisGizmo } from './AxisGizmo';
 import { FacadeCanvas } from './FacadeCanvas';
 import { PlanCanvas } from './PlanCanvas';
 import { PlanGrid } from './PlanGrid';
@@ -65,10 +66,11 @@ describe('界面结构', () => {
     expect(html).toContain('区域');
   });
 
-  it('标签页只剩平面、三维、四向立面', () => {
+  it('标签页是平面、三维、等轴测、四向立面', () => {
     const html = render(<TabBar />);
     expect(html).toContain('平面图');
-    expect(html).toContain('三维视图');
+    expect(html).toContain('三维');
+    expect(html).toContain('等轴测');
     expect(html).toContain('四向立面');
     expect(html).not.toContain('单墙立面');
   });
@@ -97,6 +99,48 @@ describe('界面结构', () => {
     expect(html).toContain('plan-grid');
     expect(html).toContain('data-wall-id');
     expect(html).toContain('data-point-id');
+  });
+
+  it('四向立面永远四个框，某一侧没墙也留空框', () => {
+    useProjectStore.getState().replaceProject(createProject('空工程'));
+    const html = render(<FacadeCanvas />);
+    expect((html.match(/facade-badge/g) ?? []).length).toBe(4);
+    expect(html).toContain('facade-empty-frame');
+    expect(html).toContain('这一侧没有外墙');
+  });
+
+  it('立面尺寸数字坐在断开的尺寸线中间', () => {
+    useProjectStore.getState().replaceProject(closedRoom());
+    const html = render(<FacadeCanvas />);
+    expect(html).toContain('facade-dimension');
+    expect(html).toContain('facade-length');
+  });
+
+  it('方位指示器同时画出上下与东西南北', () => {
+    const html = render(
+      <AxisGizmo
+        viewport={{
+          centerX: 0,
+          centerY: 0,
+          scale: 1,
+          width: 800,
+          height: 600,
+          yaw: 0,
+          pitch: 45,
+        }}
+      />,
+    );
+    for (const label of ['北', '南', '东', '西', '上', '下']) {
+      expect(html).toContain(label);
+    }
+  });
+
+  it('平面锁定默认开启，可以切换', () => {
+    expect(useProjectStore.getState().planLocked).toBe(true);
+    useProjectStore.getState().togglePlanLock();
+    expect(useProjectStore.getState().planLocked).toBe(false);
+    useProjectStore.getState().togglePlanLock();
+    expect(useProjectStore.getState().planLocked).toBe(true);
   });
 
   it('四向立面卡片带方位标记与逐段长度', () => {

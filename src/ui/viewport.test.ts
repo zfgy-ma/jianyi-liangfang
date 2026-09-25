@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { snapView, toScreen, type Viewport } from './viewport';
+import { snapView, snapYawToCardinal, toScreen, type Viewport } from './viewport';
 
 const plan: Viewport = {
   centerX: 0,
@@ -28,5 +28,11 @@ describe('三维投影', () => {
   it('接近标准视角时自动吸附，偏离时不吸附', () => {
     expect(snapView(3, 87)).toEqual({ yaw: 0, pitch: 90 });
     expect(snapView(40, 60)).toEqual({ yaw: 40, pitch: 60 });
+  });
+
+  it('三维视图的水平方向锁在东西南北四个正方向', () => {
+    expect(snapYawToCardinal(80)).toBe(90);
+    expect(snapYawToCardinal(-4)).toBe(0);
+    expect(snapYawToCardinal(184)).toBe(180);
   });
 });
