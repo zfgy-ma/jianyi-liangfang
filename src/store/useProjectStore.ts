@@ -89,7 +89,13 @@ export interface ProjectState {
   }) => void;
   changeOpening: (
     openingId: string,
-    patch: Partial<{ distance: number; width: number; height: number; sillHeight: number }>,
+    patch: Partial<{
+      kind: OpeningKind;
+      distance: number;
+      width: number;
+      height: number;
+      sillHeight: number;
+    }>,
   ) => void;
   deleteOpening: (openingId: string) => void;
   updateProjectMeta: (patch: {

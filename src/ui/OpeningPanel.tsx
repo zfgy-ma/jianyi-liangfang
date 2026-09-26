@@ -55,7 +55,11 @@ export function OpeningPanel() {
 
   const applyPreset = (nextKind: OpeningKind) => {
     setKind(nextKind);
-    setValues(PRESETS[nextKind]);
+    // 只重置宽高和离地，保留当前"距左端"，避免在镜像墙上把洞口弹到另一端
+    setValues((current) => {
+      const preset = PRESETS[nextKind];
+      return [preset[0], preset[1], preset[2], current[3]];
+    });
     setStep(0);
   };
 
@@ -91,6 +95,7 @@ export function OpeningPanel() {
         <button
           type="button"
           className={kind === 'window' ? 'mode-key mode-key-active' : 'mode-key'}
+          data-opening-kind="window"
           onClick={() => applyPreset('window')}
         >
           窗
@@ -98,6 +103,7 @@ export function OpeningPanel() {
         <button
           type="button"
           className={kind === 'door' ? 'mode-key mode-key-active' : 'mode-key'}
+          data-opening-kind="door"
           onClick={() => applyPreset('door')}
         >
           门
@@ -144,7 +150,7 @@ export function OpeningPanel() {
           };
           if (editingOpening) {
             // 有正在编辑的洞口就改它，绝不重复新增
-            changeOpening(editingOpening.id, patch);
+            changeOpening(editingOpening.id, { ...patch, kind });
             setEditingId(null);
             setStep(0);
             return;

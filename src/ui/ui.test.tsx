@@ -549,6 +549,9 @@ describe('界面结构', () => {
     view.click(`[data-edit-opening="${openingId}"]`);
     expect(view.html()).toContain(`保存 ${openingId} 的修改`);
 
+    // 顺带把窗改成门，类型也要跟着保存
+    view.click('[data-opening-kind="door"]');
+
     // 用数字键盘输入 1234，填进「宽度」再保存
     act(() => {
       ['1', '2', '3', '4'].forEach((digit) =>
@@ -561,6 +564,7 @@ describe('界面结构', () => {
     const after = useProjectStore.getState().history.present;
     expect(Object.keys(after.openings)).toHaveLength(3);
     expect(after.openings[openingId].width).toBe(1234);
+    expect(after.openings[openingId].kind).toBe('door');
     act(() => {
       useProjectStore.getState().cancelInput();
     });
