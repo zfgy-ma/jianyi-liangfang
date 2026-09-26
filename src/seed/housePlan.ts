@@ -5,26 +5,28 @@ import type { Project } from '../core/types';
 /**
  * 手绘图上读到的关键尺寸（毫米）。
  * 平面：西块 3550×5400，东块 7200×2602，两块共用南墙组成 L 形。
- * 立面：西块高 3400（A/C 面），东块高 2602（D 面）。
- * A 面南墙从左到右依次是：留白 1040 + 门洞 2640 + 中垛 640 + 窗洞 3080 + 右端余量 3350。
+ * A 面是东块那面 7200 长的北墙：570 留白 + 2640 洞口 + 640 中垛 + 3350 右段 = 7200，
+ * 其中右段 3350 里含 3080 窗。C 面是 5400 长的西墙，拱窗按矩形窗处理。
+ * A、C 面总高都标 3400，所以四面墙高统一 3400。
  */
 export const HOUSE_PLAN_SIZES = {
   westWidth: 3550,
   westDepth: 5400,
   eastWidth: 7200,
   eastDepth: 2602,
-  westHeight: 3400,
-  eastHeight: 2602,
+  wallHeight: 3400,
   /** 凹口墙：西块北端比东块高出的一段 */
   notchDepth: 5400 - 2602,
-  doorWidth: 2640,
-  doorHeight: 2580,
-  windowWidth: 3080,
-  windowHeight: 2440,
-  windowSill: 380,
-  pierWidth: 640,
-  leftMargin: 10750 - 3350 - 3080 - 640 - 2640,
-  rightMargin: 3350,
+  /** A 面从左到右：570 + 2640 + 640 + 3350 = 7200 */
+  aLeftMargin: 570,
+  aFirstWidth: 2640,
+  aFirstSill: 140,
+  aPierWidth: 640,
+  aRightSection: 3350,
+  aSecondWidth: 3080,
+  aSecondSill: 710,
+  /** 两处洞口都高 2440：2640 洞头顶 2580，3080 窗头顶 3150 */
+  openingHeight: 2440,
   /** C 面的拱窗按矩形窗处理：宽 2070、高 2440、离地 260 */
   archWidth: 2070,
   archHeight: 2440,
@@ -76,44 +78,36 @@ export function createHousePlan(): Project {
   });
   project = west.project;
 
-  // 墙高照图：南墙和西块 3400，东块 2602
-  const heights: Record<string, number> = {
-    [south.wallId]: sizes.westHeight,
-    [notch.wallId]: sizes.westHeight,
-    [northWest.wallId]: sizes.westHeight,
-    [west.wallId]: sizes.westHeight,
-    [east.wallId]: sizes.eastHeight,
-    [northEast.wallId]: sizes.eastHeight,
-  };
+  // 墙高照立面图：四面统一 3400
   project = {
     ...project,
     walls: Object.fromEntries(
       Object.entries(project.walls).map(([id, wall]) => [
         id,
-        { ...wall, height: heights[id] ?? wall.height },
+        { ...wall, height: sizes.wallHeight },
       ]),
     ),
   };
 
-  // A 面南墙：左留白、2640 门洞、640 中垛、3080 窗洞、3350 右端余量
-  const door = addOpening(project, {
-    wallId: south.wallId,
-    kind: 'door',
-    distance: sizes.leftMargin,
-    width: sizes.doorWidth,
-    height: sizes.doorHeight,
-    sillHeight: 0,
-  });
-  if (!('error' in door)) project = door.project;
-  const bigWindow = addOpening(project, {
-    wallId: south.wallId,
+  // A 面（东块北墙 7200）：570 留白、2640 洞口、640 中垛、3350 右段含 3080 窗
+  const firstOpening = addOpening(project, {
+    wallId: northEast.wallId,
     kind: 'window',
-    distance: sizes.leftMargin + sizes.doorWidth + sizes.pierWidth,
-    width: sizes.windowWidth,
-    height: sizes.windowHeight,
-    sillHeight: sizes.windowSill,
+    distance: sizes.aLeftMargin,
+    width: sizes.aFirstWidth,
+    height: sizes.openingHeight,
+    sillHeight: sizes.aFirstSill,
   });
-  if (!('error' in bigWindow)) project = bigWindow.project;
+  if (!('error' in firstOpening)) project = firstOpening.project;
+  const secondOpening = addOpening(project, {
+    wallId: northEast.wallId,
+    kind: 'window',
+    distance: sizes.aLeftMargin + sizes.aFirstWidth + sizes.aPierWidth,
+    width: sizes.aSecondWidth,
+    height: sizes.openingHeight,
+    sillHeight: sizes.aSecondSill,
+  });
+  if (!('error' in secondOpening)) project = secondOpening.project;
 
   // C 面的拱窗按矩形窗处理，挂在西墙上
   const archWindow = addOpening(project, {

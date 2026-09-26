@@ -22,25 +22,31 @@ describe('手绘图种子模型', () => {
     expect(wallLengths(project)).toEqual([2602, 2798, 3550, 5400, 7200, 10750]);
   });
 
-  it('墙高按立面图分开：西块 3400、东块 2602', () => {
+  it('墙高统一 3400（A、C 面标注）', () => {
     const heights = Object.values(project.walls).map((wall) => wall.height);
-    expect(heights.filter((height) => height === 3400)).toHaveLength(4);
-    expect(heights.filter((height) => height === 2602)).toHaveLength(2);
+    expect(heights).toHaveLength(6);
+    expect(new Set(heights)).toEqual(new Set([3400]));
   });
 
-  it('洞口三个：2640 门、3080 大窗、2070 矩形拱窗替代', () => {
+  it('洞口三个：A 面 2640 + 3080，C 面拱窗改矩形 2070', () => {
     const openings = Object.values(project.openings);
     expect(openings).toHaveLength(3);
-    const door = openings.find((opening) => opening.kind === 'door');
-    expect(door?.width).toBe(2640);
-    expect(door?.height).toBe(2580);
-    expect(door?.sillHeight).toBe(0);
-    const windows = openings.filter((opening) => opening.kind === 'window');
-    expect(windows.map((opening) => opening.width).sort((a, b) => a - b)).toEqual([
-      2070, 3080,
+    // 拱窗不画弧：三个洞口都是矩形窗数据
+    expect(openings.every((opening) => opening.kind === 'window')).toBe(true);
+    expect(openings.map((opening) => opening.width).sort((a, b) => a - b)).toEqual([
+      2070, 2640, 3080,
     ]);
-    // 拱窗改矩形：仍是矩形洞口，离地 260、高 2440
-    const arch = windows.find((opening) => opening.width === 2070);
+    const first = openings.find((opening) => opening.width === 2640);
+    const second = openings.find((opening) => opening.width === 3080);
+    // A 面两洞在同一面墙：570 + 2640 + 640 + 3350 = 7200
+    expect(first?.wallId).toBe(second?.wallId);
+    expect(first?.sillHeight).toBe(140);
+    expect(first?.height).toBe(2440);
+    expect(second?.sillHeight).toBe(710);
+    expect(second?.height).toBe(2440);
+    // C 面拱窗改矩形：宽 2070、高 2440、离地 260
+    const arch = openings.find((opening) => opening.width === 2070);
+    expect(arch?.wallId).not.toBe(first?.wallId);
     expect(arch?.height).toBe(2440);
     expect(arch?.sillHeight).toBe(260);
   });
@@ -55,20 +61,19 @@ describe('手绘图种子模型', () => {
     expect(toSquareMeters(area ?? 0)).toBeCloseTo(37.9, 1);
   });
 
-  it('四向立面都出图，错位转角保留台阶', () => {
+  it('四向立面都出图，错位转角保留竖向棱线', () => {
     for (const direction of ['E', 'S', 'W', 'N'] as const) {
       const view = buildFacade(project, direction);
       expect(view.faces.length).toBeGreaterThan(0);
     }
     const north = buildFacade(project, 'N');
-    // 南墙最远、东段北墙居中、西段北墙最近
+    // 南墙最远、东段北墙居中、西段北墙最近，转角靠最近墙的边界线保留
     expect(north.faces).toHaveLength(3);
-    // 轮廓被最远的 3400 高南墙撑满；东段 2602 矮墙的顶线靠 faces 叠出转角
     expect(north.walls).toHaveLength(1);
     expect(north.walls[0].height).toBe(3400);
-    const lowerFace = north.faces.find((face) => face.height === 2602);
-    expect(lowerFace).toBeDefined();
-    expect(lowerFace?.depth).toBeGreaterThan(0);
+    const nearest = north.faces[north.faces.length - 1];
+    expect(nearest.width).toBe(3550);
+    expect(nearest.depth).toBe(0);
     const east = buildFacade(project, 'E');
     expect(east.faces).toHaveLength(3);
   });
