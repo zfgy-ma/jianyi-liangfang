@@ -868,6 +868,11 @@ body {
   fill: var(--ink-soft);
 }
 
+.facade-opening-label {
+  fill: var(--ink);
+  font-weight: 600;
+}
+
 /* 立面里的内部分隔线与竖向投影线 */
 .facade-face-line line,
 .facade-vertical-line {

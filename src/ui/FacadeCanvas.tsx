@@ -61,16 +61,36 @@ function FacadePreview({
             {view.openings
               .filter((opening) => opening.wallId === face.wallId)
               .map((opening) => (
-                <rect
-                  key={opening.id}
-                  className={
-                    opening.kind === 'window' ? 'elevation-opening' : 'elevation-door'
-                  }
-                  x={opening.left}
-                  y={view.maxHeight - (opening.bottom + opening.height)}
-                  width={opening.width}
-                  height={opening.height}
-                />
+                <g key={opening.id}>
+                  <rect
+                    className={
+                      opening.kind === 'window' ? 'elevation-opening' : 'elevation-door'
+                    }
+                    x={opening.left}
+                    y={view.maxHeight - (opening.bottom + opening.height)}
+                    width={opening.width}
+                    height={opening.height}
+                  />
+                  {/* 洞口尺寸直接标在洞口里，方便和手绘图逐项核对 */}
+                  <text
+                    className="facade-opening-label"
+                    x={opening.left + opening.width / 2}
+                    y={view.maxHeight - opening.bottom - opening.height / 2}
+                    fontSize={labelSize * 0.45}
+                    textAnchor="middle"
+                  >
+                    {opening.width}×{opening.height}
+                  </text>
+                  <text
+                    className="facade-opening-label"
+                    x={opening.left + opening.width / 2}
+                    y={view.maxHeight - opening.bottom + labelSize * 0.55}
+                    fontSize={labelSize * 0.38}
+                    textAnchor="middle"
+                  >
+                    离地 {opening.bottom}
+                  </text>
+                </g>
               ))}
           </g>
         ))}
