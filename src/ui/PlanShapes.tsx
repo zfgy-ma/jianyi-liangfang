@@ -103,19 +103,6 @@ export function PlanShapes({
             const startPoint = project.points[wall.startPointId];
             const endPoint = project.points[wall.endPointId];
             if (!startPoint || !endPoint) return null;
-            const wallLength = lengthBetween(startPoint, endPoint);
-            const midBase = toScreen(viewport, {
-              x: (startPoint.x + endPoint.x) / 2,
-              y: (startPoint.y + endPoint.y) / 2,
-              z: startPoint.z,
-            });
-            const labelPx = Math.max(labelHeight * viewport.scale, 14);
-            const axis = axisOf(body.wallId);
-            // 近立面视角下只标正对着观察者的墙：纵深的墙在立面上是侧着的，标长度会误导
-            const nearElevation = viewport.pitch < 30;
-            const lookingAlongX =
-              Math.abs(Math.cos((viewport.yaw * Math.PI) / 180)) < 0.7;
-            const showLength = !nearElevation || (axis === 'ew') !== lookingAlongX;
             const top = body.polygon.map((point) =>
               toScreen(viewport, { ...point, z: height }),
             );
@@ -149,18 +136,6 @@ export function PlanShapes({
                   data-wall-id={body.wallId}
                   points={top.map((point) => `${point.x},${point.y}`).join(' ')}
                 />
-                {/* 立面里的尺寸：底部标长度，左上角标墙高 */}
-                {showLength ? (
-                  <text
-                    className={`wall-length wall-length-${axis}`}
-                    x={midBase.x}
-                    y={midBase.y + labelPx * 1.4}
-                    fontSize={labelPx}
-                    textAnchor="middle"
-                  >
-                    {Math.round(wallLength)}
-                  </text>
-                ) : null}
                 {body.polygon.map((point, index) => {
                   const base = toScreen(viewport, point);
                   return (
@@ -291,7 +266,6 @@ export function PlanShapes({
         conflictIds={conflicts}
         labelHeight={labelHeight}
         showPlan={showPlan}
-        showPlanLabels={viewport.pitch >= 15}
       />
 
       {(showPlan ? Object.values(project.points) : []).map((point) => {

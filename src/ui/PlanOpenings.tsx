@@ -13,8 +13,6 @@ interface PlanOpeningsProps {
   labelHeight: number;
   /** 接近平视时平面线会塌成一条，直接不画 */
   showPlan?: boolean;
-  /** 极低俯角下长度数字会叠成一团，只隐藏数字保留线条 */
-  showPlanLabels?: boolean;
 }
 
 /** 沿墙推进一段距离后的世界坐标，保留原始高度 */
@@ -61,9 +59,17 @@ export function PlanOpenings({
   conflictIds,
   labelHeight,
   showPlan = true,
-  showPlanLabels = true,
 }: PlanOpeningsProps) {
   const sp = (point: Vec2) => toScreen(viewport, point);
+  // 多面墙重叠时长度数字会画两遍，按屏幕位置去重：太近就跳过
+  const placedLabels: { x: number; y: number }[] = [];
+  const reserveLabel = (x: number, y: number): boolean => {
+    if (placedLabels.some((item) => Math.hypot(item.x - x, item.y - y) < 28)) {
+      return false;
+    }
+    placedLabels.push({ x, y });
+    return true;
+  };
 
   return (
     <g>
@@ -119,7 +125,7 @@ export function PlanOpenings({
                   />
                 );
               })}
-              {showPlanLabels ? (
+              {reserveLabel(middle.x, middle.y) ? (
                 <text
                   className="wall-length wall-length-ud"
                 x={middle.x}
@@ -207,7 +213,10 @@ export function PlanOpenings({
                 y2={sp(along(start, unit, segment.to)).y}
               />
             ))}
-            {showPlanLabels ? (
+            {reserveLabel(
+              sp(along(start, unit, middle)).x,
+              sp(along(start, unit, middle)).y,
+            ) ? (
               <text
                 className={`wall-length wall-length-${direction === 'E' || direction === 'W' ? 'ew' : 'ns'}`}
               x={sp(along(start, unit, middle)).x}

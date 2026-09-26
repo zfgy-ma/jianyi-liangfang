@@ -398,6 +398,17 @@ describe('界面结构', () => {
     }
   });
 
+  it('长度数字不重复、转到低角度也不消失', () => {
+    useProjectStore.getState().replaceProject(closedRoom());
+    useProjectStore.getState().setElevationMode(false);
+    // 一面墙一个数字：挤在一起的重叠标注会被屏幕空间去重掉
+    const normal = render(<PlanCanvas preset={{ yaw: 35, pitch: 45 }} />);
+    expect((normal.match(/class="wall-length /g) ?? []).length).toBe(4);
+    // 压到近水平也不能整批消失
+    const flat = render(<PlanCanvas preset={{ yaw: 35, pitch: 10 }} />);
+    expect((flat.match(/class="wall-length /g) ?? []).length).toBeGreaterThan(0);
+  });
+
   it('上下方向的线条也有居中长度文字', () => {
     const origin = createOriginPoint(createProject('竖线测试'), 0, 0);
     const up = drawWall(origin.project, {
