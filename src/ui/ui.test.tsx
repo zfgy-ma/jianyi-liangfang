@@ -65,6 +65,8 @@ function renderInteractive(element: ReactElement) {
     root.render(element);
   });
   return {
+    html: () => container.innerHTML,
+    query: (selector: string) => container.querySelector(selector),
     click: (selector: string) => {
       const node = container.querySelector(selector);
       if (!node) throw new Error(`找不到元素：${selector}`);
@@ -407,6 +409,31 @@ describe('界面结构', () => {
     // 压到近水平也不能整批消失
     const flat = render(<PlanCanvas preset={{ yaw: 35, pitch: 10 }} />);
     expect((flat.match(/class="wall-length /g) ?? []).length).toBeGreaterThan(0);
+  });
+
+  it('点选墙壁不会把视角弹回平面图', () => {
+    useProjectStore.getState().replaceProject(closedRoom());
+    useProjectStore.getState().setElevationMode(false);
+    const view = renderInteractive(<PlanCanvas preset={{ yaw: 35, pitch: 30 }} />);
+    const scaleOf = () =>
+      Number(/data-scale="([^"]+)"/.exec(view.html())?.[1] ?? '0');
+
+    const before = scaleOf();
+    const svg = view.query('svg') as SVGSVGElement;
+    act(() => {
+      svg.dispatchEvent(new WheelEvent('wheel', { deltaY: -120, bubbles: true }));
+    });
+    const zoomed = scaleOf();
+    expect(zoomed).toBeGreaterThan(before);
+
+    // 选中一面墙：缩放与角度都不该被重置
+    const wallId = Object.keys(useProjectStore.getState().history.present.walls)[0];
+    act(() => {
+      useProjectStore.getState().selectWall(wallId);
+    });
+    expect(scaleOf()).toBeCloseTo(zoomed);
+    expect(view.html()).toContain('data-pitch="30"');
+    view.unmount();
   });
 
   it('上下方向的线条也有居中长度文字', () => {

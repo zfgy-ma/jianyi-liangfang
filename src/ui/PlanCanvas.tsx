@@ -103,7 +103,7 @@ export function PlanCanvas({
   useEffect(() => {
     setViewport(fitViewport(project, size.width, size.height, preset.yaw, preset.pitch));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fitKey, selectedWallId]);
+  }, [fitKey]);
 
   // 相机同步到 store：方向键据此决定哪些键置灰不可点
   useEffect(() => {
@@ -323,6 +323,9 @@ export function PlanCanvas({
       </div>
       <svg
         className="plan-canvas"
+        data-yaw={viewport.yaw}
+        data-pitch={viewport.pitch}
+        data-scale={viewport.scale}
         width={size.width}
         height={size.height}
         onPointerDown={handlePointerDown}

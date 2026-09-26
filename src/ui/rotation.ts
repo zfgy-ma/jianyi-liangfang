@@ -15,6 +15,7 @@ export function rotateCamera(
   const MIN_PITCH = 5;
   return {
     yaw: options.lockYaw ? camera.yaw : camera.yaw - deltaX * DEGREE_PER_PIXEL,
-    pitch: Math.max(MIN_PITCH, Math.min(90, camera.pitch + deltaY * DEGREE_PER_PIXEL)),
+    // 往上拖 = 抬高视线看房顶，与常见三维软件的方向一致
+    pitch: Math.max(MIN_PITCH, Math.min(90, camera.pitch - deltaY * DEGREE_PER_PIXEL)),
   };
 }
