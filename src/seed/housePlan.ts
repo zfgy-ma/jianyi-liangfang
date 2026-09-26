@@ -40,6 +40,22 @@ export const HOUSE_PLAN_SIZES = {
 
 export const HOUSE_PLAN_NAME = '手绘图 · 客厅 L 形';
 
+/**
+ * B 面、D 面用户已确认要建，但平面图上找不到 4700 的定位参照，
+ * 先把图纸读数固化成数据，等一个平面锚点就直接落位。
+ */
+export const PENDING_FACADE_SIZES = {
+  b: { width: 4700, height: 3500 },
+  d: {
+    width: 4700,
+    openingWidth: 2370,
+    openingHeight: 3000,
+    leftPier: 260,
+    rightPier: 740,
+    headerHeight: 260,
+  },
+} as const;
+
 /** 依次落下六段外墙；闭合后把每段墙高改成图上标注的高度 */
 export function createHousePlan(): Project {
   const sizes = HOUSE_PLAN_SIZES;

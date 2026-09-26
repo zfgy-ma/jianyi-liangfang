@@ -3,7 +3,7 @@ import { buildFacade } from '../core/facade';
 import { lengthBetween } from '../core/geometry';
 import { roomArea, toSquareMeters } from '../core/room';
 import type { Project } from '../core/types';
-import { createHousePlan } from './housePlan';
+import { createHousePlan, PENDING_FACADE_SIZES } from './housePlan';
 
 function wallLengths(project: Project): number[] {
   return Object.values(project.walls)
@@ -89,5 +89,15 @@ describe('手绘图种子模型', () => {
     const archWindow = west.openings.find((opening) => opening.width === 2070);
     expect(archWindow?.left).toBe(550);
     expect(archWindow?.height).toBe(2440);
+  });
+
+  it('B、D 面读数已固化，等平面锚点落位', () => {
+    expect(PENDING_FACADE_SIZES.b).toEqual({ width: 4700, height: 3500 });
+    expect(PENDING_FACADE_SIZES.d.width).toBe(4700);
+    expect(PENDING_FACADE_SIZES.d.openingWidth).toBe(2370);
+    expect(PENDING_FACADE_SIZES.d.openingHeight).toBe(3000);
+    expect(PENDING_FACADE_SIZES.d.leftPier).toBe(260);
+    expect(PENDING_FACADE_SIZES.d.rightPier).toBe(740);
+    expect(PENDING_FACADE_SIZES.d.headerHeight).toBe(260);
   });
 });
