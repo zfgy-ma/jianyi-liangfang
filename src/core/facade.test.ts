@@ -146,13 +146,13 @@ describe('四向立面', () => {
     // 南墙（最远）、东段北墙、西段北墙（最近）都在投影里
     expect(northView.faces).toHaveLength(3);
     const nearest = northView.faces[northView.faces.length - 1];
-    // 站在北侧时东在左手边，所以西段北墙落在立面右侧
-    expect(nearest.left).toBe(7200);
+    // 从内看（站在室内面朝北墙），左手边是西，所以西段北墙落在立面左侧
+    expect(nearest.left).toBe(0);
     expect(nearest.width).toBe(3550);
     expect(nearest.depth).toBe(0);
     expect(northView.walls.map((wall) => [wall.left, wall.width, wall.height])).toEqual([
-      [0, 7200, 2800],
-      [7200, 3550, 3400],
+      [0, 3550, 3400],
+      [3550, 7200, 2800],
     ]);
     // 南墙被前两段墙完全盖住，只给看得见的两段标尺寸
     expect(visibleFacadeFaces(northView.faces).map((face) => face.width)).toEqual([

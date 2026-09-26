@@ -178,7 +178,11 @@ const VIEW_VECTOR: Record<ViewDirection, Vec2> = {
  * 生成立面投影：只取朝向观察者的外墙。
  * 横向轴按「观察者面向建筑时的左手边在立面左侧」排列，与单墙立面的规则一致。
  */
-export function buildFacade(project: Project, direction: ViewDirection): FacadeView {
+export function buildFacade(
+  project: Project,
+  direction: ViewDirection,
+  fromInside = true,
+): FacadeView {
   const label = VIEW_LABEL[direction];
   // 立面只认实体墙的包围盒；隐形定位线不参与，免得把图纸撑大
   const solidWalls = Object.values(project.walls).filter((wall) => !wall.isHelper);
@@ -207,7 +211,15 @@ export function buildFacade(project: Project, direction: ViewDirection): FacadeV
   const minY = Math.min(...ys);
   const maxY = Math.max(...ys);
 
+  // 从内看：站在室内面朝这面墙，左手边放立面左侧，跟现场对照一致；
+  // 从外看：站在房子外面朝墙，左右正好反过来。
   const horizontal = (position: Vec2): number => {
+    if (fromInside) {
+      if (direction === 'E') return maxY - position.y;
+      if (direction === 'W') return position.y - minY;
+      if (direction === 'S') return maxX - position.x;
+      return position.x - minX;
+    }
     if (direction === 'E') return position.y - minY;
     if (direction === 'W') return maxY - position.y;
     if (direction === 'S') return position.x - minX;

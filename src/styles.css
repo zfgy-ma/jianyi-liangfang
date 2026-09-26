@@ -832,6 +832,10 @@ body {
   overflow: auto;
 }
 
+.facade-view-switch {
+  justify-self: start;
+}
+
 .facade-card {
   position: relative;
   display: flex;

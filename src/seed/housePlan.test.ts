@@ -18,13 +18,13 @@ function wallLengths(project: Project): number[] {
 describe('手绘图种子模型', () => {
   const project = createHousePlan();
 
-  it('平面尺寸与图纸一致：六段外墙首尾相接', () => {
-    expect(wallLengths(project)).toEqual([2602, 2798, 3550, 5400, 7200, 10750]);
+  it('平面尺寸与图纸一致：南墙拆两段，七段外墙首尾相接', () => {
+    expect(wallLengths(project)).toEqual([2602, 2798, 3550, 3550, 5400, 7200, 7200]);
   });
 
   it('墙高统一 3400（A、C 面标注）', () => {
     const heights = Object.values(project.walls).map((wall) => wall.height);
-    expect(heights).toHaveLength(6);
+    expect(heights).toHaveLength(7);
     expect(new Set(heights)).toEqual(new Set([3400]));
   });
 
@@ -67,8 +67,8 @@ describe('手绘图种子模型', () => {
       expect(view.faces.length).toBeGreaterThan(0);
     }
     const north = buildFacade(project, 'N');
-    // 南墙最远、东段北墙居中、西段北墙最近，转角靠最近墙的边界线保留
-    expect(north.faces).toHaveLength(3);
+    // 南墙两段最远、东段北墙居中、西段北墙最近，转角靠最近墙的边界线保留
+    expect(north.faces).toHaveLength(4);
     expect(north.walls).toHaveLength(1);
     expect(north.walls[0].height).toBe(3400);
     const nearest = north.faces[north.faces.length - 1];
@@ -78,16 +78,16 @@ describe('手绘图种子模型', () => {
     expect(east.faces).toHaveLength(3);
   });
 
-  it('按用户确认锁定方向：A 面 570 从东端、C 面拱窗在图纸左侧 550', () => {
-    // A 面（北立面）：570 留白在东端，立面上应出现在左侧 570
-    const north = buildFacade(project, 'N');
-    const firstOpening = north.openings.find((opening) => opening.width === 2640);
+  it('按用户确认锁定方向：A 面 570 从东端、C 面拱窗距西端 550', () => {
+    // A 面在南墙东段：从内看南墙，左手边是东，570 留白出现在立面左侧
+    const south = buildFacade(project, 'S');
+    const firstOpening = south.openings.find((opening) => opening.width === 2640);
     expect(firstOpening?.left).toBe(570);
 
-    // C 面（西立面）：拱窗改矩形窗，从图纸左边 550 起
-    const west = buildFacade(project, 'W');
-    const archWindow = west.openings.find((opening) => opening.width === 2070);
-    expect(archWindow?.left).toBe(550);
+    // C 面在东块北墙：从内看北墙，左手边是西；西块占 3550，拱窗落在 3550 + 550
+    const north = buildFacade(project, 'N');
+    const archWindow = north.openings.find((opening) => opening.width === 2070);
+    expect(archWindow?.left).toBe(4100);
     expect(archWindow?.height).toBe(2440);
   });
 

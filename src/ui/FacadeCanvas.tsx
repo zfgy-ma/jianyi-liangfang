@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   buildFacade,
   visibleFacadeFaces,
@@ -9,10 +10,12 @@ import { useProjectStore } from '../store/useProjectStore';
 function FacadePreview({
   view,
   sheet,
+  fromInside,
 }: {
   view: FacadeView;
   /** 四张图共用的图幅，保证同样的长度画出来一样长 */
   sheet: { width: number; height: number };
+  fromInside: boolean;
 }) {
   const pad = Math.max(sheet.width, sheet.height) * 0.12;
   // 尺寸数字放大，放在尺寸线中间，线在数字处断开
@@ -180,7 +183,7 @@ function FacadePreview({
       <figcaption>
         {empty
           ? `${view.label} · 暂无外墙`
-          : `${view.label} · 总宽 ${view.totalWidth}mm · 墙高 ${view.maxHeight}mm`}
+          : `${view.label} · ${fromInside ? '从内看' : '从外看'} · 总宽 ${view.totalWidth}mm · 墙高 ${view.maxHeight}mm`}
       </figcaption>
     </figure>
   );
@@ -188,9 +191,11 @@ function FacadePreview({
 
 export function FacadeCanvas() {
   const project = useProjectStore((state) => state.history.present);
+  // 默认从内看：跟现场对照和手绘量房图的左右一致，可切成从外看
+  const [fromInside, setFromInside] = useState(true);
   // 四个方向始终都出图，某一侧没有外墙也留一个空框
   const views = (['E', 'S', 'W', 'N'] as ViewDirection[])
-    .map((direction) => buildFacade(project, direction));
+    .map((direction) => buildFacade(project, direction, fromInside));
   // 四张图共用同一图幅，同样的长度在四张图上画出来一样长
   const sheet = {
     width: Math.max(1000, ...views.map((view) => view.totalWidth)),
@@ -199,8 +204,29 @@ export function FacadeCanvas() {
 
   return (
     <div className="canvas-wrap facade-grid">
+      <div className="mode-switch facade-view-switch">
+        <button
+          type="button"
+          className={fromInside ? 'mode-key mode-key-active' : 'mode-key'}
+          onClick={() => setFromInside(true)}
+        >
+          从内看
+        </button>
+        <button
+          type="button"
+          className={fromInside ? 'mode-key' : 'mode-key mode-key-active'}
+          onClick={() => setFromInside(false)}
+        >
+          从外看
+        </button>
+      </div>
       {views.map((view) => (
-        <FacadePreview key={view.direction} view={view} sheet={sheet} />
+        <FacadePreview
+          key={view.direction}
+          view={view}
+          sheet={sheet}
+          fromInside={fromInside}
+        />
       ))}
     </div>
   );
