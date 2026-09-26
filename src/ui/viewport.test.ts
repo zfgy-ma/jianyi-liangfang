@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   enabledDirections,
   fitElevationViewport,
+  fitViewport,
   nearestStandardView,
   nextStandardView,
+  orbitViewport,
+  projectCenter,
   snapView,
   snapYawToCardinal,
   STANDARD_VIEWS,
@@ -11,6 +14,7 @@ import {
   toScreen,
   type Viewport,
 } from './viewport';
+import { createOriginPoint, createProject, drawWall } from '../core/project';
 
 const plan: Viewport = {
   centerX: 0,
@@ -83,5 +87,33 @@ describe('三维投影', () => {
     expect(viewport.centerX).toBe(5000);
     expect(viewport.centerY).toBe(4000);
     expect(viewport.scale).toBeGreaterThan(0);
+  });
+
+  it('旋转绕模型中心：中心点的屏幕位置保持不变', () => {
+    const origin = createOriginPoint(createProject('旋转测试'), 0, 0);
+    const south = drawWall(origin.project, {
+      fromPointId: origin.pointId,
+      direction: 'E',
+      length: 6000,
+    });
+    const east = drawWall(south.project, {
+      fromPointId: south.endPointId,
+      direction: 'N',
+      length: 4000,
+    });
+    const project = east.project;
+    const viewport = fitViewport(project, 900, 620, 35, 45);
+    const center = projectCenter(project);
+    const before = toScreen(viewport, center);
+
+    const rotated = orbitViewport(project, viewport, 40, -20);
+    const after = toScreen(rotated, center);
+
+    // 轴心不动：房子是围着自己转，不会被甩出画面
+    expect(after.x).toBeCloseTo(before.x, 6);
+    expect(after.y).toBeCloseTo(before.y, 6);
+    // 但角度确实转了
+    expect(rotated.yaw).not.toBeCloseTo(viewport.yaw, 3);
+    expect(rotated.pitch).not.toBeCloseTo(viewport.pitch, 3);
   });
 });

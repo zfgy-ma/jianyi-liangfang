@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { rotateCamera } from './rotation';
+import { rotateCamera, rotationSpeed } from './rotation';
 
 describe('视角旋转方向', () => {
   it('往右拖：画面跟着手往右转', () => {
@@ -22,5 +22,14 @@ describe('视角旋转方向', () => {
     const result = rotateCamera({ yaw: 45, pitch: 30 }, 50, 10, { lockYaw: true });
     expect(result.yaw).toBe(45);
     expect(result.pitch).toBeCloseTo(26);
+  });
+
+  it('放大后转速变慢，缩小时不再加速', () => {
+    // 基准缩放：0.4 度/像素
+    expect(rotationSpeed(0.05)).toBeCloseTo(0.4);
+    // 放大十倍：转速降到十分之一，避免一拖就飞出去
+    expect(rotationSpeed(0.5)).toBeCloseTo(0.04);
+    // 缩得比基准还远：保持基准速度，不反向加速
+    expect(rotationSpeed(0.005)).toBeCloseTo(0.4);
   });
 });

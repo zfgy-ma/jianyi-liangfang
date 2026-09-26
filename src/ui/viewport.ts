@@ -1,4 +1,5 @@
-import type { MoveDirection, PointLike, Project, Vec2 } from '../core/types';
+import { rotateCamera } from './rotation';
+import type { MoveDirection, PointLike, Project, Vec2, Vec3 } from '../core/types';
 import { effectiveWallHeight } from '../core/facade';
 import { buildWallBodies } from '../core/wallOffset';
 import type { ViewDirection } from '../core/facade';
@@ -214,6 +215,57 @@ export function fitElevationViewport(
     height,
     yaw,
     pitch,
+  };
+}
+
+/** 工程中心（含墙高）：旋转时以它为轴心，避免绕屏幕中心甩出去 */
+export function projectCenter(project: Project): Vec3 {
+  const points = Object.values(project.points);
+  if (points.length === 0) return { x: 0, y: 0, z: 0 };
+  const samples: PointLike[] = points.map((point) => ({
+    x: point.x,
+    y: point.y,
+    z: point.z,
+  }));
+  for (const body of buildWallBodies(project)) {
+    const wall = project.walls[body.wallId];
+    if (!wall) continue;
+    const top = effectiveWallHeight(project, wall);
+    for (const corner of body.polygon) {
+      samples.push({ x: corner.x, y: corner.y, z: top });
+    }
+  }
+  const xs = samples.map((sample) => sample.x);
+  const ys = samples.map((sample) => sample.y);
+  const zs = samples.map((sample) => sample.z ?? 0);
+  return {
+    x: (Math.min(...xs) + Math.max(...xs)) / 2,
+    y: (Math.min(...ys) + Math.max(...ys)) / 2,
+    z: (Math.min(...zs) + Math.max(...zs)) / 2,
+  };
+}
+
+/**
+ * 绕模型中心旋转：模型中心在屏幕上的位置保持不变。
+ * 这样即使之前平移过，转动时也是围着房子转，不会把模型甩出画面。
+ */
+export function orbitViewport(
+  project: Project,
+  current: Viewport,
+  deltaX: number,
+  deltaY: number,
+): Viewport {
+  const center = projectCenter(project);
+  const anchor = toScreen(current, center);
+  const next: Viewport = {
+    ...current,
+    ...rotateCamera(current, deltaX, deltaY, { scale: current.scale }),
+  };
+  const projected = projectPoint(next, center);
+  return {
+    ...next,
+    centerX: projected.x - (anchor.x - current.width / 2) / current.scale,
+    centerY: projected.y - (anchor.y - current.height / 2) / current.scale,
   };
 }
 

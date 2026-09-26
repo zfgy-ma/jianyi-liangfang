@@ -5,9 +5,9 @@ import { PlanShapes } from './PlanShapes';
 import { PlanGrid } from './PlanGrid';
 import { AxisGizmo } from './AxisGizmo';
 import { resolveTap, type PendingTap } from './tap';
-import { rotateCamera } from './rotation';
 import {
   fitViewport,
+  orbitViewport,
   nearestStandardView,
   nextStandardView,
   isElevationView,
@@ -145,11 +145,10 @@ export function PlanCanvas({
     pointers.current.set(event.pointerId, next);
 
     if (rotating.current) {
-      setViewport((current) => ({
-        ...current,
-        ...rotateCamera(current, next.x - previous.x, next.y - previous.y, {
-        }),
-      }));
+      // 绕模型中心转，模型不会被甩出画面
+      setViewport((current) =>
+        orbitViewport(project, current, next.x - previous.x, next.y - previous.y),
+      );
       return;
     }
 
@@ -175,12 +174,12 @@ export function PlanCanvas({
         const scale = clampScale(current.scale * factor);
         // 锁定视角时双指只负责缩放；否则双指拖动顺带旋转
         if (lockRotation) return { ...current, scale };
-        return {
-          ...current,
-          scale,
-          ...rotateCamera(current, midX - previousMid.x, midY - previousMid.y, {
-          }),
-        };
+        return orbitViewport(
+          project,
+          { ...current, scale },
+          midX - previousMid.x,
+          midY - previousMid.y,
+        );
       });
     }
   };
