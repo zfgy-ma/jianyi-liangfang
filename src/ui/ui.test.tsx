@@ -374,6 +374,9 @@ describe('界面结构', () => {
     // 三维视图必须有挤出体量与侧面，否则又回到"只有几根线"
     expect(iso).toContain('wall-side');
     expect(iso).toContain('wall-top');
+    // 四向立面第一张卡就是东立面，一并导出核对比例
+    const facade = exportSvg('facade-east', <FacadeCanvas />);
+    expect(facade).toContain('facade-length');
   });
 
   it('上下方向的线条也有居中长度文字', () => {

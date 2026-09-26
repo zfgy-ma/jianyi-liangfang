@@ -54,23 +54,12 @@ export interface FacadeView {
 }
 
 /**
- * 墙体实际高度：工程层高、单墙设定、以及与它的端点相连的竖直线上沿，
- * 三者取最大。这样在平面上用"上"画的墙高会如实反映到立面里。
+ * 墙高只有一个来源：这面墙自己的设定，没有就用工程统一层高。
+ * 参考实现（furnishup/blueprint3d, src/model/wall.ts）：
+ * 墙 = 起点 + 终点 + 显式墙厚 + 显式墙高，高度不从别的线条去猜。
  */
 export function effectiveWallHeight(project: Project, wall: Wall): number {
-  let height = Math.max(project.wallHeight, wall.height ?? 0);
-  const ends = [wall.startPointId, wall.endPointId];
-  for (const other of Object.values(project.walls)) {
-    if (other.id === wall.id) continue;
-    if (!ends.includes(other.startPointId) && !ends.includes(other.endPointId)) {
-      continue;
-    }
-    const from = project.points[other.startPointId];
-    const to = project.points[other.endPointId];
-    if (!from || !to || from.z === to.z) continue;
-    height = Math.max(height, from.z, to.z);
-  }
-  return height;
+  return wall.height ?? project.wallHeight;
 }
 
 /**

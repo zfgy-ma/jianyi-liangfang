@@ -79,14 +79,26 @@ describe('四向立面', () => {
     expect(east.totalWidth).toBe(10000);
   });
 
-  it('立面高度跟着实际画的竖线走，而不是固定层高', () => {
+  it('墙高只认自己的设定或工程层高，不被旁边画的竖线带偏', () => {
     const { project, wallId } = squareWithInnerWall();
     const up = drawWall(project, {
       fromPointId: project.walls[wallId].startPointId,
       direction: 'U',
-      length: 4200,
+      length: 16000,
     });
     expect(up.wallId).not.toBe('');
-    expect(effectiveWallHeight(up.project, up.project.walls[wallId])).toBe(4200);
+    // 关键回归：墙上贴着一根 16 米的竖线，也不该把墙高算成 16 米
+    expect(effectiveWallHeight(up.project, up.project.walls[wallId])).toBe(
+      up.project.wallHeight,
+    );
+    // 单独给这面墙设高度时才生效
+    const taller = {
+      ...up.project,
+      walls: {
+        ...up.project.walls,
+        [wallId]: { ...up.project.walls[wallId], height: 3200 },
+      },
+    };
+    expect(effectiveWallHeight(taller, taller.walls[wallId])).toBe(3200);
   });
 });
