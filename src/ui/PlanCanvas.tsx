@@ -4,17 +4,14 @@ import { useProjectStore } from '../store/useProjectStore';
 import { PlanShapes } from './PlanShapes';
 import { PlanGrid } from './PlanGrid';
 import { AxisGizmo } from './AxisGizmo';
-import { ElevationLayer } from './ElevationLayer';
 import { resolveTap, type PendingTap } from './tap';
 import { rotateCamera } from './rotation';
 import {
   fitViewport,
-  fitElevationViewport,
   nearestStandardView,
   nextStandardView,
   isElevationView,
   STANDARD_VIEW_OF_DIRECTION,
-  VIEW_DIRECTION_OF,
   screenToView,
   STANDARD_VIEWS,
   snapYawToCardinal,
@@ -33,7 +30,6 @@ function clampScale(scale: number): number {
 export function PlanCanvas({
   preset,
   lockRotation = false,
-  lockYaw = false,
   snapYaw = false,
   showLock = false,
 }: {
@@ -41,8 +37,6 @@ export function PlanCanvas({
   preset: { yaw: number; pitch: number };
   /** 锁定视角：不能旋转，只能平移缩放 */
   lockRotation?: boolean;
-  /** 只允许调俯仰，水平方向锁死 */
-  lockYaw?: boolean;
   /** 水平方向锁在东西南北四个正方向 */
   snapYaw?: boolean;
   /** 在画布右下角显示平面锁定按钮 */
@@ -103,13 +97,6 @@ export function PlanCanvas({
   // 切换视图、画布尺寸变化、或换成另一个工程（例如刷新后自动载入）时按预设重新取景
   const fitKey = `${project.id}|${size.width}x${size.height}|${preset.yaw}x${preset.pitch}`;
   useEffect(() => {
-    // 立面模式下由立面取景接管，这里不要覆盖
-    if (
-      selectedWallId &&
-      isElevationView(nearestStandardView(viewport.yaw, viewport.pitch))
-    ) {
-      return;
-    }
     setViewport(fitViewport(project, size.width, size.height, preset.yaw, preset.pitch));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fitKey, selectedWallId]);
@@ -157,7 +144,6 @@ export function PlanCanvas({
       setViewport((current) => ({
         ...current,
         ...rotateCamera(current, next.x - previous.x, next.y - previous.y, {
-          lockYaw,
         }),
       }));
       return;
@@ -189,7 +175,6 @@ export function PlanCanvas({
           ...current,
           scale,
           ...rotateCamera(current, midX - previousMid.x, midY - previousMid.y, {
-            lockYaw,
           }),
         };
       });
@@ -251,15 +236,12 @@ export function PlanCanvas({
 
   const currentViewKey = nearestStandardView(viewport.yaw, viewport.pitch);
 
-  /** 快捷视图按钮：平面图 → 东西向 → 南北向循环 */
+  /** 快捷视图按钮：平面图 → 东 → 南 → 西 → 北循环；只转相机，不需要选线 */
   const cycleStandardView = () => {
     const next = nextStandardView(currentViewKey);
-    if (isElevationView(next) && !selectedWallId) {
-      setNotice('请先在图上点选一条线条，再切换到立面视角');
-      return;
-    }
     const target = STANDARD_VIEWS[next];
     setViewport(fitViewport(project, size.width, size.height, target.yaw, target.pitch));
+    setNotice(`已切到${target.label}`);
   };
 
   /** 点锁定：先回到离当前最近的平面正视图，再锁住旋转 */
@@ -275,34 +257,6 @@ export function PlanCanvas({
   };
 
   // 立面视角：不再用三维相机，而是把建筑朝该方向压平成二维立面图
-  const elevationKey =
-    isElevationView(currentViewKey) && selectedWallId ? currentViewKey : null;
-  const facadeView = elevationKey
-    ? buildFacade(project, VIEW_DIRECTION_OF[elevationKey])
-    : null;
-
-  useEffect(() => {
-    if (!facadeView || !elevationKey) return;
-    const target = STANDARD_VIEWS[elevationKey];
-    setViewport(
-      fitElevationViewport(
-        size.width,
-        size.height,
-        facadeView.totalWidth,
-        facadeView.maxHeight,
-        target.yaw,
-        target.pitch,
-      ),
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    facadeView?.direction,
-    facadeView?.totalWidth,
-    facadeView?.maxHeight,
-    size.width,
-    size.height,
-  ]);
-
   /** “立面”按钮：切到选中线条所在的那一面立面 */
   const goToWallElevation = () => {
     const wall = selectedWallId ? project.walls[selectedWallId] : null;
@@ -314,16 +268,8 @@ export function PlanCanvas({
     const run = connectedRun(project, wall.id);
     const view = buildFacade(project, direction);
     const target = STANDARD_VIEWS[STANDARD_VIEW_OF_DIRECTION[direction]];
-    setViewport(
-      fitElevationViewport(
-        size.width,
-        size.height,
-        view.totalWidth,
-        view.maxHeight,
-        target.yaw,
-        target.pitch,
-      ),
-    );
+    // 只把相机转到那一面，场景仍是三维的，中键随时可以继续转
+    setViewport(fitViewport(project, size.width, size.height, target.yaw, target.pitch));
     setNotice(
       run.length > 1
         ? `已切到${view.label}，这条线所在的整面墙（共 ${run.length} 段）都算进来了`
@@ -334,8 +280,21 @@ export function PlanCanvas({
   const scaleLabel =
     viewport.scale >= 1 ? '1:1' : `1:${Math.round(1 / viewport.scale)}`;
 
+  // 当前看的是哪一面：贴近标准视角就报名字，否则就是自由视角
+  const standardView = STANDARD_VIEWS[currentViewKey];
+  const yawGap = Math.min(
+    Math.abs(viewport.yaw - standardView.yaw),
+    360 - Math.abs(viewport.yaw - standardView.yaw),
+  );
+  const nearStandard =
+    Math.abs(viewport.pitch - standardView.pitch) <= 8 && yawGap <= 8;
+  const faceLabel = nearStandard ? standardView.label : '自由视角';
+
   return (
     <div className="canvas-wrap" ref={containerRef}>
+      <div className="canvas-face-label" data-face={currentViewKey}>
+        {faceLabel}
+      </div>
       <svg
         className="plan-canvas"
         width={size.width}
@@ -346,21 +305,15 @@ export function PlanCanvas({
         onPointerCancel={handlePointerUp}
         onWheel={handleWheel}
       >
-        {facadeView ? (
-          <ElevationLayer view={facadeView} viewport={viewport} />
-        ) : (
-          <>
-            <PlanGrid viewport={viewport} />
-            <PlanShapes
-              project={project}
-              viewport={viewport}
-              activePointId={activePointId}
-              selectedWallId={selectedWallId}
-              draftWallIds={roomDraft}
-              extrude={viewport.pitch < 80}
-            />
-          </>
-        )}
+        <PlanGrid viewport={viewport} />
+        <PlanShapes
+          project={project}
+          viewport={viewport}
+          activePointId={activePointId}
+          selectedWallId={selectedWallId}
+          draftWallIds={roomDraft}
+          extrude={viewport.pitch < 88}
+        />
       </svg>
       <div className="canvas-tools">
         <button type="button" className="tool-button" onClick={cycleStandardView}>

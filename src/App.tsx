@@ -84,7 +84,7 @@ export function App() {
         {tab === 'plan' ? (
           <PlanCanvas preset={PLAN_VIEW} lockRotation={planLocked} showLock />
         ) : null}
-        {tab === 'three' ? <PlanCanvas preset={THREE_VIEW} lockYaw /> : null}
+        {tab === 'three' ? <PlanCanvas preset={THREE_VIEW} /> : null}
         {tab === 'iso' ? <PlanCanvas preset={ISO_VIEW} /> : null}
         {tab === 'facade' ? <FacadeCanvas /> : null}
         {isDesktop ? (

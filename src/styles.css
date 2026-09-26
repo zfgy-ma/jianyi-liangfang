@@ -1194,6 +1194,22 @@ body {
   z-index: 20;
 }
 
+/* 画布左上角：当前是什么面 */
+.canvas-face-label {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 5;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  pointer-events: none;
+}
+
 /* 画布右下角的锁定按钮：图标按钮，不占操作坞宽度 */
 .icon-button {
   display: inline-flex;

@@ -12,7 +12,6 @@ import { useProjectStore } from '../store/useProjectStore';
 import { App } from '../App';
 import { Dock } from './Dock';
 import { AxisGizmo } from './AxisGizmo';
-import { ElevationLayer } from './ElevationLayer';
 import { FacadeCanvas } from './FacadeCanvas';
 import { PlanCanvas } from './PlanCanvas';
 import { PlanGrid } from './PlanGrid';
@@ -236,29 +235,17 @@ describe('界面结构', () => {
     expect(html).toContain('stroke="#2f6fd0"');
   });
 
-  it('立面视角渲染二维立面图：体量、墙面分隔与尺寸线都在', () => {
-    const view = buildFacade(closedRoom(), 'E');
-    const html = render(
-      <ElevationLayer
-        view={view}
-        viewport={{
-          centerX: 0,
-          centerY: 0,
-          scale: 0.05,
-          width: 800,
-          height: 600,
-          yaw: 0,
-          pitch: 0,
-        }}
-      />,
-    );
-    expect(html).toContain('elevation-mass');
-    expect(html).toContain('elevation-face');
-    expect(html).toContain('elevation-dimension');
-    // 体量必须自带填充色，否则 SVG 默认黑色，整张立面会变黑板
-    expect(html).toContain('fill="#f2f4f7"');
-    // 平视时不再依赖三维相机，所以一定画得出东西
-    expect(html).toContain('<line');
+  it('画布左上角标出当前看的是哪一面，而且三维场景始终在', () => {
+    useProjectStore.getState().replaceProject(closedRoom());
+    const plan = render(<PlanCanvas preset={{ yaw: 0, pitch: 90 }} showLock />);
+    expect(plan).toContain('canvas-face-label');
+    expect(plan).toContain('平面图');
+
+    // 切到东向：标签跟着变，场景仍是可旋转的三维画布（不是静态二维图）
+    const east = render(<PlanCanvas preset={{ yaw: 90, pitch: 0 }} />);
+    expect(east).toContain('东向');
+    expect(east).toContain('plan-canvas');
+    expect(east).toContain('wall-solid-ew');
   });
 
   it('四张立面共用同一图幅，且墙高有标注', () => {
