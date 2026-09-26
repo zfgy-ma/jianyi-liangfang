@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { effectiveWallHeight } from '../core/facade';
 import { lengthBetween } from '../core/geometry';
 import type { Project } from '../core/types';
 import { findWallConflicts } from '../core/validate';
@@ -12,6 +13,10 @@ interface PlanShapesProps {
   activePointId: string | null;
   selectedWallId: string | null;
   draftWallIds: string[];
+  /** 只显示这一面墙，立面视角用 */
+  onlyWallId?: string | null;
+  /** 是否把墙体挤出高度（三维、等轴测视图） */
+  extrude?: boolean;
 }
 
 export function PlanShapes({
@@ -20,15 +25,35 @@ export function PlanShapes({
   activePointId,
   selectedWallId,
   draftWallIds,
+  onlyWallId = null,
+  extrude = false,
 }: PlanShapesProps) {
   const draftIds = useMemo(() => new Set(draftWallIds), [draftWallIds]);
-  const bodies = useMemo(() => buildWallBodies(project), [project]);
+  const bodies = useMemo(
+    () =>
+      buildWallBodies(project).filter(
+        (body) => !onlyWallId || body.wallId === onlyWallId,
+      ),
+    [project, onlyWallId],
+  );
   const conflicts = useMemo(
     () => new Set(findWallConflicts(project).map((item) => item.wallId)),
     [project],
   );
 
-  const walls = Object.values(project.walls).map((wall) => {
+  /** 按方向给线条/体量分色：东西红、南北绿、上下蓝 */
+  const axisOf = (wallId: string): 'ew' | 'ns' | 'ud' => {
+    const wall = project.walls[wallId];
+    const start = wall ? project.points[wall.startPointId] : undefined;
+    const end = wall ? project.points[wall.endPointId] : undefined;
+    if (!start || !end) return 'ns';
+    if (start.z !== end.z) return 'ud';
+    return start.y === end.y ? 'ew' : 'ns';
+  };
+
+  const walls = Object.values(project.walls)
+    .filter((wall) => !onlyWallId || wall.id === onlyWallId)
+    .map((wall) => {
     const startPoint = project.points[wall.startPointId];
     const endPoint = project.points[wall.endPointId];
     return {
@@ -37,7 +62,7 @@ export function PlanShapes({
       end: toScreen(viewport, endPoint),
       length: lengthBetween(startPoint, endPoint),
     };
-  });
+    });
 
   // 长度数字的字高按户型尺寸给，缩放时等比变化，和 CAD 一致
   const span = walls.reduce((current, item) => Math.max(current, item.length), 0);
@@ -45,6 +70,40 @@ export function PlanShapes({
 
   return (
     <g>
+      {extrude
+        ? bodies.map((body) => {
+            const wall = project.walls[body.wallId];
+            if (!wall) return null;
+            const height = effectiveWallHeight(project, wall);
+            const top = body.polygon.map((point) =>
+              toScreen(viewport, { ...point, z: height }),
+            );
+            return (
+              <g
+                key={`solid-${body.wallId}`}
+                className={`wall-solid wall-solid-${axisOf(body.wallId)}`}
+              >
+                <polygon
+                  className="wall-top"
+                  points={top.map((point) => `${point.x},${point.y}`).join(' ')}
+                />
+                {body.polygon.map((point, index) => {
+                  const base = toScreen(viewport, point);
+                  return (
+                    <line
+                      key={`${body.wallId}-edge-${index}`}
+                      className="wall-edge"
+                      x1={base.x}
+                      y1={base.y}
+                      x2={top[index].x}
+                      y2={top[index].y}
+                    />
+                  );
+                })}
+              </g>
+            );
+          })
+        : null}
       {bodies.map((body) => (
         <polygon
           key={`body-${body.wallId}`}

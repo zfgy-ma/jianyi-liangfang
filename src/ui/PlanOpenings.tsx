@@ -67,9 +67,11 @@ export function PlanOpenings({
         if (!start || !end) return null;
         const direction = directionOf(start, end);
         if (!direction) {
-          // 竖直方向的墙：投影后就是一段线，没有墙厚与门窗符号
-          const from = sp(start);
-          const to = sp(end);
+          // 竖直方向的墙：同样按"线中断、数字居中"来标注长度
+          const z0 = Math.min(start.z, end.z);
+          const z1 = Math.max(start.z, end.z);
+          const verticalLength = z1 - z0;
+          if (verticalLength <= 0) return null;
           const verticalClass = [
             'wall-line',
             wall.isHelper ? 'wall-line-helper' : '',
@@ -80,22 +82,53 @@ export function PlanOpenings({
           ]
             .filter(Boolean)
             .join(' ');
+          const fontSizePx = labelHeight * viewport.scale;
+          const gapHalf =
+            ((String(Math.round(verticalLength)).length * 0.62 + 0.9) * labelHeight) / 2;
+          const midZ = (z0 + z1) / 2;
+          const atZ = (z: number) => ({ x: start.x, y: start.y, z });
+          const parts: [number, number][] =
+            verticalLength > gapHalf * 5
+              ? [
+                  [z0, midZ - gapHalf],
+                  [midZ + gapHalf, z1],
+                ]
+              : [[z0, z1]];
+          const middle = sp(atZ(midZ));
+          const hitFrom = sp(start);
+          const hitTo = sp(end);
           return (
             <g key={wall.id}>
-              <line
-                className={verticalClass}
-                x1={from.x}
-                y1={from.y}
-                x2={to.x}
-                y2={to.y}
-              />
+              {parts.map(([fromZ, toZ]) => {
+                const from = sp(atZ(fromZ));
+                const to = sp(atZ(toZ));
+                return (
+                  <line
+                    key={fromZ}
+                    className={verticalClass}
+                    x1={from.x}
+                    y1={from.y}
+                    x2={to.x}
+                    y2={to.y}
+                  />
+                );
+              })}
+              <text
+                className="wall-length wall-length-ud"
+                x={middle.x}
+                y={middle.y + fontSizePx * 0.35}
+                fontSize={fontSizePx}
+                textAnchor="middle"
+              >
+                {Math.round(verticalLength)}
+              </text>
               <line
                 className="wall-hit-line"
                 data-wall-id={wall.id}
-                x1={from.x}
-                y1={from.y}
-                x2={to.x}
-                y2={to.y}
+                x1={hitFrom.x}
+                y1={hitFrom.y}
+                x2={hitTo.x}
+                y2={hitTo.y}
               />
             </g>
           );
@@ -165,12 +198,12 @@ export function PlanOpenings({
               />
             ))}
             <text
-              className="wall-length"
+              className={`wall-length wall-length-${direction === 'E' || direction === 'W' ? 'ew' : 'ns'}`}
               x={sp(along(start, unit, middle)).x}
-              y={sp(along(start, unit, middle)).y}
+              // SVG 里文字是基线定位，往下挪半行才是视觉居中
+              y={sp(along(start, unit, middle)).y + labelHeight * viewport.scale * 0.35}
               fontSize={labelHeight * viewport.scale}
               textAnchor="middle"
-              dominantBaseline="central"
             >
               {Math.round(wallLength)}
             </text>

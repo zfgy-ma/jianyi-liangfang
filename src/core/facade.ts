@@ -38,6 +38,47 @@ export interface FacadeView {
   openings: FacadeOpeningRect[];
 }
 
+/**
+ * 墙体实际高度：工程层高、单墙设定、以及与它的端点相连的竖直线上沿，
+ * 三者取最大。这样在平面上用"上"画的墙高会如实反映到立面里。
+ */
+export function effectiveWallHeight(project: Project, wall: Wall): number {
+  let height = Math.max(project.wallHeight, wall.height ?? 0);
+  const ends = [wall.startPointId, wall.endPointId];
+  for (const other of Object.values(project.walls)) {
+    if (other.id === wall.id) continue;
+    if (!ends.includes(other.startPointId) && !ends.includes(other.endPointId)) {
+      continue;
+    }
+    const from = project.points[other.startPointId];
+    const to = project.points[other.endPointId];
+    if (!from || !to || from.z === to.z) continue;
+    height = Math.max(height, from.z, to.z);
+  }
+  return height;
+}
+
+/** 合并首尾相接或互相重叠的投影区间，取其中最高的墙 */
+export function mergeSpans(rects: FacadeWallRect[]): FacadeWallRect[] {
+  const sorted = [...rects].sort((left, right) => left.left - right.left);
+  const merged: FacadeWallRect[] = [];
+  for (const rect of sorted) {
+    const last = merged[merged.length - 1];
+    if (last && rect.left <= last.left + last.width + 1) {
+      const right = Math.max(last.left + last.width, rect.left + rect.width);
+      merged[merged.length - 1] = {
+        wallId: last.wallId,
+        left: last.left,
+        width: right - last.left,
+        height: Math.max(last.height, rect.height),
+      };
+    } else {
+      merged.push({ ...rect });
+    }
+  }
+  return merged;
+}
+
 /** 墙体外侧法线：指向室外，也就是墙厚偏移的方向 */
 export function outwardNormal(project: Project, wall: Wall): Vec2 | null {
   const start = project.points[wall.startPointId];
@@ -98,7 +139,7 @@ export function buildFacade(project: Project, direction: ViewDirection): FacadeV
     if (start.z !== end.z) continue;
     const direction2 = directionOf(start, end);
     if (!direction2) continue;
-    const height = wall.height ?? project.wallHeight;
+    const height = effectiveWallHeight(project, wall);
     maxHeight = Math.max(maxHeight, height);
     const startX = horizontal(start);
     const endX = horizontal(end);
@@ -134,5 +175,5 @@ export function buildFacade(project: Project, direction: ViewDirection): FacadeV
     }
   }
 
-  return { direction, label, totalWidth, maxHeight, walls, openings };
+  return { direction, label, totalWidth, maxHeight, walls: mergeSpans(walls), openings };
 }

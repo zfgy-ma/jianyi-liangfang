@@ -1,5 +1,6 @@
 import type { MoveDirection } from '../core/types';
 import { useProjectStore } from '../store/useProjectStore';
+import { enabledDirections } from './viewport';
 
 const DIRECTION_TEXT: Record<MoveDirection, string> = {
   N: '北',
@@ -19,13 +20,16 @@ export function DirectionPad() {
   const direction = useProjectStore((state) => state.direction);
   const pressDirection = useProjectStore((state) => state.pressDirection);
   const mode = useProjectStore((state) => state.mode);
+  const camera = useProjectStore((state) => state.camera);
   const disabled = mode === 'select';
+  // 当前视角平面外的方向置灰，避免画出这个视角里根本不存在的方向
+  const allowed = enabledDirections(camera);
 
   const renderKey = (key: MoveDirection) => (
     <button
       key={key}
       type="button"
-      disabled={disabled}
+      disabled={disabled || !allowed.includes(key)}
       aria-pressed={direction === key}
       data-direction={key}
       className={direction === key ? 'dir-key dir-key-active' : 'dir-key'}

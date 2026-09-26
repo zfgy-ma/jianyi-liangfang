@@ -43,6 +43,10 @@ export interface ProjectState {
   toolMessage: string;
   /** 手机上没有中键，用这个开关把单指拖动切换成旋转视角 */
   rotateMode: boolean;
+  /** 当前画布相机；方向键的可用范围由它推导 */
+  camera: { yaw: number; pitch: number };
+  /** 一次性提示，例如"先选一条线条再切立面" */
+  notice: string;
   setTab: (tab: TabKey) => void;
   togglePlanLock: () => void;
   setDockPanel: (panel: DockPanelKey) => void;
@@ -92,6 +96,8 @@ export interface ProjectState {
   changeWallHeight: (wallId: string, height: number | undefined) => void;
   applyOuterThicknessToAll: () => void;
   toggleRotateMode: () => void;
+  setCamera: (camera: { yaw: number; pitch: number }) => void;
+  setNotice: (notice: string) => void;
 }
 
 /** 新工程开局：原点固定，起点角只影响录入提示 */
@@ -126,6 +132,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   openingMessage: '',
   toolMessage: '',
   rotateMode: false,
+  camera: { yaw: 0, pitch: 90 },
+  notice: '',
 
   setTab: (tab) => set({ tab }),
   togglePlanLock: () => set((state) => ({ planLocked: !state.planLocked })),
@@ -379,4 +387,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   toggleRotateMode: () => set((state) => ({ rotateMode: !state.rotateMode })),
+
+  setCamera: (camera) => set({ camera }),
+  setNotice: (notice) => set({ notice }),
 }));

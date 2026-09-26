@@ -1,4 +1,4 @@
-import type { PointLike, Project, Vec2 } from '../core/types';
+import type { MoveDirection, PointLike, Project, Vec2 } from '../core/types';
 
 /**
  * 视图：正交投影相机 + 屏幕映射。
@@ -24,35 +24,54 @@ export const THREE_VIEW = { yaw: 45, pitch: 45 };
 /** 等轴测：方位 45°、俯仰 35.264°，标准轴测角度 */
 export const ISO_VIEW = { yaw: 45, pitch: 35.264 };
 
-export type StandardViewKey = 'plan' | 'ew' | 'ns';
+export type StandardViewKey = 'plan' | 'east' | 'south' | 'west' | 'north';
 
-/** 三个标准正视图：平面图（北朝上）、东西向、南北向 */
+/**
+ * 五个标准正视图：平面图（北朝上）与四个方向的立面。
+ * 立面视角按"观察者站在那一侧往里看"取方位角，左右关系与现场一致。
+ */
 export const STANDARD_VIEWS: Record<
   StandardViewKey,
   { yaw: number; pitch: number; label: string }
 > = {
   plan: { yaw: 0, pitch: 90, label: '平面图' },
-  ew: { yaw: 90, pitch: 0, label: '东西向' },
-  ns: { yaw: 0, pitch: 0, label: '南北向' },
+  east: { yaw: 90, pitch: 0, label: '东向' },
+  south: { yaw: 0, pitch: 0, label: '南向' },
+  west: { yaw: 270, pitch: 0, label: '西向' },
+  north: { yaw: 180, pitch: 0, label: '北向' },
 };
+
+/** 立面视角需要先选好一条线，不能凭空切过去 */
+export function isElevationView(key: StandardViewKey): boolean {
+  return key !== 'plan';
+}
 
 /** 找出离当前视角最近的标准正视图，平面图一律回正到北朝上 */
 export function nearestStandardView(yaw: number, pitch: number): StandardViewKey {
   if (Math.abs(90 - pitch) <= 45) return 'plan';
   const normalized = ((yaw % 360) + 360) % 360;
-  const toEastWest = Math.min(
-    Math.abs(normalized - 90),
-    Math.abs(normalized - 270),
-  );
-  const toNorthSouth = Math.min(normalized, 360 - normalized);
-  return toEastWest < toNorthSouth ? 'ew' : 'ns';
+  const order: StandardViewKey[] = ['south', 'east', 'north', 'west'];
+  return order[Math.round(normalized / 90) % 4];
 }
 
-/** 循环切换标准正视图：平面图 → 东西向 → 南北向 → 平面图 */
+/** 循环切换：平面图 → 东 → 南 → 西 → 北 → 平面图 */
 export function nextStandardView(current: StandardViewKey): StandardViewKey {
-  if (current === 'plan') return 'ew';
-  if (current === 'ew') return 'ns';
-  return 'plan';
+  const order: StandardViewKey[] = ['plan', 'east', 'south', 'west', 'north'];
+  return order[(order.indexOf(current) + 1) % order.length];
+}
+
+/**
+ * 当前视角下可以落笔的方向：平面视角只能走东西南北，
+ * 立面视角只能在该立面平面内走，另一个水平方向变灰不可点。
+ */
+export function enabledDirections(camera: {
+  yaw: number;
+  pitch: number;
+}): MoveDirection[] {
+  if (camera.pitch > 45) return ['N', 'E', 'S', 'W'];
+  const normalized = ((camera.yaw % 180) + 180) % 180;
+  const lookingEastWest = Math.abs(normalized - 90) < 45;
+  return lookingEastWest ? ['N', 'S', 'U', 'D'] : ['E', 'W', 'U', 'D'];
 }
 
 /** 世界坐标 → 视图平面坐标（毫米） */

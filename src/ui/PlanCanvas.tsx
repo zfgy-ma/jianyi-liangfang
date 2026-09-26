@@ -8,6 +8,7 @@ import {
   fitViewport,
   nearestStandardView,
   nextStandardView,
+  isElevationView,
   screenToView,
   STANDARD_VIEWS,
   snapYawToCardinal,
@@ -52,6 +53,9 @@ export function PlanCanvas({
   const rotateMode = useProjectStore((state) => state.rotateMode);
   const planLocked = useProjectStore((state) => state.planLocked);
   const togglePlanLock = useProjectStore((state) => state.togglePlanLock);
+  const setCamera = useProjectStore((state) => state.setCamera);
+  const setNotice = useProjectStore((state) => state.setNotice);
+  const notice = useProjectStore((state) => state.notice);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
@@ -90,10 +94,17 @@ export function PlanCanvas({
     );
   }, [project, size.width, size.height]);
 
+  // 切换视图、画布尺寸变化、或换成另一个工程（例如刷新后自动载入）时按预设重新取景
+  const fitKey = `${project.id}|${size.width}x${size.height}|${preset.yaw}x${preset.pitch}`;
   useEffect(() => {
-    // 切换视图或画布尺寸变化时按预设重新取景；工程内容变化不动视角
     setViewport(fitViewport(project, size.width, size.height, preset.yaw, preset.pitch));
-  }, [size.width, size.height, preset.yaw, preset.pitch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fitKey]);
+
+  // 相机同步到 store：方向键据此决定哪些键置灰不可点
+  useEffect(() => {
+    setCamera({ yaw: viewport.yaw, pitch: viewport.pitch });
+  }, [viewport.yaw, viewport.pitch, setCamera]);
 
   const handlePointerDown = (event: React.PointerEvent<SVGSVGElement>) => {
     // 中键旋转；手机上用“视角”开关把单指拖动切成旋转
@@ -134,7 +145,8 @@ export function PlanCanvas({
       const pitchStep = (next.y - previous.y) * 0.4;
       setViewport((current) => ({
         ...current,
-        yaw: lockYaw ? current.yaw : current.yaw + yawStep,
+        // 左右方向与手上的拖动一致
+        yaw: lockYaw ? current.yaw : current.yaw - yawStep,
         // 往下拖是抬高视线看房顶，方向与手感一致
         pitch: Math.max(0, Math.min(90, current.pitch + pitchStep)),
       }));
@@ -166,7 +178,7 @@ export function PlanCanvas({
         return {
           ...current,
           scale,
-          yaw: lockYaw ? current.yaw : current.yaw + (midX - previousMid.x) * 0.4,
+          yaw: lockYaw ? current.yaw : current.yaw - (midX - previousMid.x) * 0.4,
           pitch: Math.max(
             0,
             Math.min(90, current.pitch + (midY - previousMid.y) * 0.4),
@@ -234,6 +246,10 @@ export function PlanCanvas({
   /** 快捷视图按钮：平面图 → 东西向 → 南北向循环 */
   const cycleStandardView = () => {
     const next = nextStandardView(currentViewKey);
+    if (isElevationView(next) && !selectedWallId) {
+      setNotice('请先在图上点选一条线条，再切换到立面视角');
+      return;
+    }
     const target = STANDARD_VIEWS[next];
     setViewport(fitViewport(project, size.width, size.height, target.yaw, target.pitch));
   };
@@ -243,9 +259,16 @@ export function PlanCanvas({
     const nextLocked = !planLocked;
     togglePlanLock();
     if (!nextLocked) return;
-    const target = STANDARD_VIEWS[nearestStandardView(viewport.yaw, viewport.pitch)];
+    const nearest = nearestStandardView(viewport.yaw, viewport.pitch);
+    // 没选线就不能切到立面视角，退回平面图
+    const key = isElevationView(nearest) && !selectedWallId ? 'plan' : nearest;
+    const target = STANDARD_VIEWS[key];
     setViewport(fitViewport(project, size.width, size.height, target.yaw, target.pitch));
   };
+
+  // 立面视角下只画选中的那一面墙，其他墙的高度线条不会混进来
+  const showOnlyWallId =
+    selectedWallId && isElevationView(currentViewKey) ? selectedWallId : null;
 
   const scaleLabel =
     viewport.scale >= 1 ? '1:1' : `1:${Math.round(1 / viewport.scale)}`;
@@ -269,6 +292,8 @@ export function PlanCanvas({
           activePointId={activePointId}
           selectedWallId={selectedWallId}
           draftWallIds={roomDraft}
+          onlyWallId={showOnlyWallId}
+          extrude={viewport.pitch < 80}
         />
       </svg>
       <div className="canvas-tools">
@@ -317,6 +342,14 @@ export function PlanCanvas({
       <div className="axis-overlay">
         <AxisGizmo viewport={viewport} />
       </div>
+      {notice ? (
+        <div className="canvas-notice" role="alert">
+          <span>{notice}</span>
+          <button type="button" className="tool-button" onClick={() => setNotice('')}>
+            知道了
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

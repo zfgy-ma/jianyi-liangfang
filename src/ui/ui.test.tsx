@@ -175,11 +175,12 @@ describe('界面结构', () => {
     // 平面锁定按钮在画布右下角，是个图标按钮
     expect(html).toContain('data-lock-state="locked"');
     // 标准视图切换按钮就在适配视图旁边
-    expect(html).toContain('切到东西向');
+    expect(html).toContain('切到东向');
     // 线条按方向分色：这个户型有东西向的墙
     expect(html).toContain('wall-line-ew');
     // 长度数字字号是算出来的内联值，会跟着缩放等比变化
-    expect(html).toMatch(/class="wall-length"[^>]*font-size=/);
+    // 数字与线条同色，且字号是算出来的内联值，会跟着缩放等比变化
+    expect(html).toMatch(/class="wall-length wall-length-ew"[^>]*font-size=/);
   });
 
   it('工程面板改成直接输入，三个“用键盘数值”按钮已删除', () => {

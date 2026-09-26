@@ -900,13 +900,7 @@ body {
   stroke-width: 1;
 }
 
-.axis-arm {
-  stroke: var(--ink-soft);
-  stroke-width: 1.5;
-}
-
 .axis-label {
-  fill: var(--ink);
   font-size: 13px;
   font-weight: 600;
 }
@@ -1072,6 +1066,19 @@ body {
   pointer-events: none;
 }
 
+/* 数字跟线条同色，和图纸一致 */
+.wall-length.wall-length-ew {
+  fill: #c9453a;
+}
+
+.wall-length.wall-length-ns {
+  fill: #3c8b4a;
+}
+
+.wall-length.wall-length-ud {
+  fill: #2f6fd0;
+}
+
 /* 手机端底部面板区：替换键盘，不盖住画布 */
 .dock-panel {
   max-height: 40vh;
@@ -1088,6 +1095,49 @@ body {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 6px;
+}
+
+/* 三维与等轴测视图里的墙体体量：顶面 + 竖棱，按方向分色 */
+.wall-top {
+  fill: var(--wall-fill);
+  stroke: none;
+}
+
+.wall-edge {
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.wall-solid-ew .wall-edge {
+  stroke: #c9453a;
+}
+
+.wall-solid-ns .wall-edge {
+  stroke: #3c8b4a;
+}
+
+.wall-solid-ud .wall-edge {
+  stroke: #2f6fd0;
+}
+
+/* 画布内的提示条：例如"先选一条线再切立面" */
+.canvas-notice {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 92%;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--warn);
+  border-radius: 10px;
+  box-shadow: 0 10px 24px rgba(24, 32, 44, 0.16);
+  z-index: 20;
 }
 
 /* 画布右下角的锁定按钮：图标按钮，不占操作坞宽度 */

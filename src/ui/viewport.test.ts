@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  enabledDirections,
   nearestStandardView,
   nextStandardView,
   snapView,
@@ -47,19 +48,29 @@ describe('三维投影', () => {
 
   it('回到最近的标准正视图：平面图一定北朝上', () => {
     expect(nearestStandardView(12, 78)).toBe('plan');
-    expect(nearestStandardView(95, 8)).toBe('ew');
-    expect(nearestStandardView(355, 5)).toBe('ns');
+    expect(nearestStandardView(95, 8)).toBe('east');
+    expect(nearestStandardView(355, 5)).toBe('south');
     // 平面图固定北朝上
     expect(STANDARD_VIEWS.plan).toEqual({ yaw: 0, pitch: 90, label: '平面图' });
   });
 
-  it('标准视图按钮按平面图 → 东西向 → 南北向循环', () => {
-    expect(nextStandardView('plan')).toBe('ew');
-    expect(nextStandardView('ew')).toBe('ns');
-    expect(nextStandardView('ns')).toBe('plan');
+  it('标准视图按钮按平面图 → 东 → 南 → 西 → 北循环', () => {
+    expect(nextStandardView('plan')).toBe('east');
+    expect(nextStandardView('east')).toBe('south');
+    expect(nextStandardView('south')).toBe('west');
+    expect(nextStandardView('north')).toBe('plan');
   });
 
   it('三维视图默认以 45 度角查看', () => {
     expect(THREE_VIEW).toEqual({ yaw: 45, pitch: 45 });
+  });
+
+  it('方向键按当前视角置灰：平面没有上下，立面没有平面外方向', () => {
+    // 平面视角：只能走东西南北
+    expect(enabledDirections({ yaw: 0, pitch: 90 })).toEqual(['N', 'E', 'S', 'W']);
+    // 东向/西向立面：平面外的东西方向置灰
+    expect(enabledDirections({ yaw: 90, pitch: 0 })).toEqual(['N', 'S', 'U', 'D']);
+    // 南向/北向立面：平面外的南北方向置灰
+    expect(enabledDirections({ yaw: 0, pitch: 0 })).toEqual(['E', 'W', 'U', 'D']);
   });
 });
