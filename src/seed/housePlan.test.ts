@@ -77,4 +77,17 @@ describe('手绘图种子模型', () => {
     const east = buildFacade(project, 'E');
     expect(east.faces).toHaveLength(3);
   });
+
+  it('按用户确认锁定方向：A 面 570 从东端、C 面拱窗在图纸左侧 550', () => {
+    // A 面（北立面）：570 留白在东端，立面上应出现在左侧 570
+    const north = buildFacade(project, 'N');
+    const firstOpening = north.openings.find((opening) => opening.width === 2640);
+    expect(firstOpening?.left).toBe(570);
+
+    // C 面（西立面）：拱窗改矩形窗，从图纸左边 550 起
+    const west = buildFacade(project, 'W');
+    const archWindow = west.openings.find((opening) => opening.width === 2070);
+    expect(archWindow?.left).toBe(550);
+    expect(archWindow?.height).toBe(2440);
+  });
 });
