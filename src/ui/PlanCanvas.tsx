@@ -273,8 +273,8 @@ export function PlanCanvas({
     const run = connectedRun(project, wall.id);
     const view = buildFacade(project, direction);
     const target = STANDARD_VIEWS[STANDARD_VIEW_OF_DIRECTION[direction]];
-    // 从墙的正面看，默认站在室外
-    if (!elevationFromOutside) toggleElevationSide();
+    // 进入墙面模式默认从内看，和四向立面、手绘量房图保持一致
+    if (elevationFromOutside) toggleElevationSide();
     setElevationMode(true);
     // 只把相机转到那一面，场景仍是三维的，中键随时可以继续转
     setViewport(fitViewport(project, size.width, size.height, target.yaw, target.pitch));

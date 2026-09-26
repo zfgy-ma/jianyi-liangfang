@@ -304,9 +304,9 @@ describe('界面结构', () => {
     const face = render(<PlanCanvas preset={{ yaw: 90, pitch: 0 }} />);
     expect(face).toContain('wall-face');
     useProjectStore.getState().setElevationMode(false);
-    // 立面视角要能一眼看出从内看还是从外看，并且能切换
-    expect(east).toContain('视角：从外看');
-    expect(east).toContain('从外看');
+    // 立面视角要能一眼看出从内看还是从外看，并且能切换（默认从内看）
+    expect(east).toContain('视角：从内看');
+    expect(east).toContain('从内看');
   });
 
   it('四张立面共用同一图幅，且墙高有标注', () => {

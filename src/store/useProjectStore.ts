@@ -146,7 +146,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   rotateMode: false,
   camera: { yaw: 0, pitch: 90 },
   notice: '',
-  elevationFromOutside: true,
+  // 默认从内看：和四向立面、手绘量房图的左右保持一致
+  elevationFromOutside: false,
   elevationMode: false,
 
   // 换标签页就退出“某面墙的立面”模式，避免状态残留
