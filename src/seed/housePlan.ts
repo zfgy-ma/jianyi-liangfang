@@ -50,8 +50,9 @@ export const HOUSE_PLAN_SIZES = {
 export const HOUSE_PLAN_NAME = '手绘图 · 客厅 L 形';
 
 /**
- * B 面、D 面用户已确认要建，但平面图上找不到 4700 的定位参照，
- * 先把图纸读数固化成数据，等一个平面锚点就直接落位。
+ * B 面、D 面的位置已按用户 CAD 平面图确定（B=西墙、D=东墙），
+ * 但立面读数（4700 宽、3500 高）和现有墙长（西墙 5400、东墙 2602）不符，
+ * 先把图纸读数固化，等确认 4700 的来源后直接落位。
  */
 export const PENDING_FACADE_SIZES = {
   b: { width: 4700, height: 3500 },

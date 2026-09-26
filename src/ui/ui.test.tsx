@@ -537,6 +537,19 @@ describe('界面结构', () => {
     expect(html).toContain('>3550<');
   });
 
+  it('四向立面默认从内看，可以一键切到从外看', () => {
+    useProjectStore.getState().replaceProject(createHousePlan());
+    const view = renderInteractive(<FacadeCanvas />);
+    expect(view.html()).toContain('东立面 · 从内看');
+    expect(view.query('[data-facade-view="inside"]')?.className).toContain(
+      'mode-key-active',
+    );
+
+    view.click('[data-facade-view="outside"]');
+    expect(view.html()).toContain('东立面 · 从外看');
+    view.unmount();
+  });
+
   it('洞口能改尺寸：编辑把旧值装回字段格，保存后不新增', () => {
     useProjectStore.getState().replaceProject(createHousePlan());
     const project = useProjectStore.getState().history.present;

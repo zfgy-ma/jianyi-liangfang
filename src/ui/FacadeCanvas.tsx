@@ -208,6 +208,7 @@ export function FacadeCanvas() {
         <button
           type="button"
           className={fromInside ? 'mode-key mode-key-active' : 'mode-key'}
+          data-facade-view="inside"
           onClick={() => setFromInside(true)}
         >
           从内看
@@ -215,6 +216,7 @@ export function FacadeCanvas() {
         <button
           type="button"
           className={fromInside ? 'mode-key' : 'mode-key mode-key-active'}
+          data-facade-view="outside"
           onClick={() => setFromInside(false)}
         >
           从外看
