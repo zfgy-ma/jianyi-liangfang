@@ -304,7 +304,11 @@ export function PlanCanvas({
     Math.abs(viewport.pitch - standardView.pitch) <= 8 && yawGap <= 8;
   const inElevation = isElevationView(currentViewKey);
   const faceLabel = nearStandard
-    ? `${standardView.label}${inElevation ? (elevationFromOutside ? ' · 从外看' : ' · 从内看') : ''}`
+    ? `${standardView.label}${
+        inElevation
+          ? ` · ${elevationFromOutside ? '从外看' : '从内看'} · 层高 ${project.wallHeight}`
+          : ''
+      }`
     : '自由视角';
 
   return (

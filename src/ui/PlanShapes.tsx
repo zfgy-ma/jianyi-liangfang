@@ -43,6 +43,21 @@ export function PlanShapes({
         return runsEastWest !== lookingAlongX;
       })
     : [];
+  const yawRad = (viewport.yaw * Math.PI) / 180;
+  /** 沿视线方向的进深：值越大越远，按它排序后用实心墙面互相遮挡 */
+  const depthOf = (wallId: string): number => {
+    const wall = project.walls[wallId];
+    const from = wall ? project.points[wall.startPointId] : undefined;
+    const to = wall ? project.points[wall.endPointId] : undefined;
+    if (!from || !to) return 0;
+    const midX = (from.x + to.x) / 2;
+    const midY = (from.y + to.y) / 2;
+    return -midX * Math.sin(yawRad) + midY * Math.cos(yawRad);
+  };
+  // 远的先画、近的后画，近处的实心墙就把后面的线挡住了
+  const orderedFaceWalls = [...faceWalls].sort(
+    (left, right) => depthOf(right.id) - depthOf(left.id),
+  );
   const bodies = useMemo(() => buildWallBodies(project), [project]);
   const conflicts = useMemo(
     () => new Set(findWallConflicts(project).map((item) => item.wallId)),
@@ -89,11 +104,6 @@ export function PlanShapes({
               x: (startPoint.x + endPoint.x) / 2,
               y: (startPoint.y + endPoint.y) / 2,
               z: startPoint.z,
-            });
-            const leftTop = toScreen(viewport, {
-              x: startPoint.x,
-              y: startPoint.y,
-              z: startPoint.z + height,
             });
             const labelPx = Math.max(labelHeight * viewport.scale, 14);
             const axis = axisOf(body.wallId);
@@ -147,15 +157,6 @@ export function PlanShapes({
                     {Math.round(wallLength)}
                   </text>
                 ) : null}
-                <text
-                  className={`wall-length wall-length-${axis}`}
-                  x={leftTop.x - labelPx * 0.4}
-                  y={leftTop.y}
-                  fontSize={labelPx}
-                  textAnchor="end"
-                >
-                  {Math.round(height)}
-                </text>
                 {body.polygon.map((point, index) => {
                   const base = toScreen(viewport, point);
                   return (
@@ -174,7 +175,7 @@ export function PlanShapes({
           })
         : null}
       {/* 立面视角：只画当前墙面的片，左右两条竖线是上下方向的蓝色 */}
-      {faceWalls.map((wall) => {
+      {orderedFaceWalls.map((wall) => {
         const from = project.points[wall.startPointId];
         const to = project.points[wall.endPointId];
         if (!from || !to) return null;
@@ -255,15 +256,6 @@ export function PlanShapes({
               textAnchor="middle"
             >
               {Math.round(wallLength)}
-            </text>
-            <text
-              className="wall-length wall-length-vertical"
-              x={topA.x - labelPx * 0.4}
-              y={(topA.y + baseA.y) / 2}
-              fontSize={labelPx}
-              textAnchor="end"
-            >
-              {Math.round(height)}
             </text>
           </g>
         );
