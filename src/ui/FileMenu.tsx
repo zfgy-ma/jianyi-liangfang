@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Project } from '../core/types';
 import { exportDxf, exportProjectFile, projectFromJson } from '../io/files';
 import { listProjects, loadProject } from '../io/storage';
+import { createHousePlan, HOUSE_PLAN_NAME } from '../seed/housePlan';
 import { useProjectStore, type CornerKey } from '../store/useProjectStore';
 
 const CORNERS: { key: CornerKey; label: string }[] = [
@@ -77,6 +78,21 @@ export function FileMenu() {
               }}
             >
               创建并开始放线
+            </button>
+          </div>
+
+          <div className="file-section">
+            <span className="prop-label">手绘图示例</span>
+            <button
+              type="button"
+              className="tool-button"
+              onClick={() => {
+                replaceProject(createHousePlan());
+                setMessage(`已载入：${HOUSE_PLAN_NAME}`);
+                setOpen(false);
+              }}
+            >
+              载入客厅 L 形（按手绘图尺寸）
             </button>
           </div>
 
