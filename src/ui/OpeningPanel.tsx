@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { elevationAxis } from '../core/elevation';
 import type { Opening, OpeningKind } from '../core/types';
 import { useProjectStore } from '../store/useProjectStore';
@@ -24,6 +24,12 @@ export function OpeningPanel() {
   /** 正在改哪个洞口；为空表示当前是新建模式 */
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  // 换到另一面墙就退出编辑，避免把旧洞口的尺寸保存到新墙上
+  useEffect(() => {
+    setEditingId(null);
+    setStep(0);
+  }, [selectedWallId]);
+
   const wall = selectedWallId ? project.walls[selectedWallId] : null;
   if (!wall) {
     return (
@@ -40,6 +46,10 @@ export function OpeningPanel() {
   const openings = Object.values(project.openings).filter(
     (opening) => opening.wallId === wall.id,
   );
+  const editingOpening =
+    editingId && project.openings[editingId]?.wallId === wall.id
+      ? project.openings[editingId]
+      : null;
   const pending = Number(digits);
   const canFill = digits !== '' && Number.isFinite(pending) && pending >= 0;
 
@@ -132,9 +142,9 @@ export function OpeningPanel() {
             sillHeight: values[2],
             distance: axis ? axis.toWallDistance(values[3]) : values[3],
           };
-          if (editingId) {
+          if (editingOpening) {
             // 有正在编辑的洞口就改它，绝不重复新增
-            changeOpening(editingId, patch);
+            changeOpening(editingOpening.id, patch);
             setEditingId(null);
             setStep(0);
             return;
@@ -142,7 +152,7 @@ export function OpeningPanel() {
           addOpeningAt({ wallId: wall.id, kind, ...patch });
         }}
       >
-        {editingId ? `保存 ${editingId} 的修改` : '添加这个洞口'}
+        {editingOpening ? `保存 ${editingOpening.id} 的修改` : '添加这个洞口'}
       </button>
 
       {editingId ? (

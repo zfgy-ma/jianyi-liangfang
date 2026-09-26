@@ -567,6 +567,26 @@ describe('界面结构', () => {
     view.unmount();
   });
 
+  it('编辑洞口时换到另一面墙会自动退出编辑，不会串墙保存', () => {
+    useProjectStore.getState().replaceProject(createHousePlan());
+    const project = useProjectStore.getState().history.present;
+    const openingId = Object.keys(project.openings)[0];
+    const wallId = project.openings[openingId].wallId;
+    useProjectStore.getState().selectWall(wallId);
+    const view = renderInteractive(<OpeningPanel />);
+    view.click(`[data-edit-opening="${openingId}"]`);
+    expect(view.html()).toContain(`保存 ${openingId} 的修改`);
+
+    const otherWallId = Object.keys(project.walls).find((id) => id !== wallId);
+    if (!otherWallId) throw new Error('测试工程缺少另一面墙');
+    act(() => {
+      useProjectStore.getState().selectWall(otherWallId);
+    });
+    expect(view.html()).not.toContain(`保存 ${openingId} 的修改`);
+    expect(view.html()).toContain('添加这个洞口');
+    view.unmount();
+  });
+
   it('切到出图页时不渲染操作坞，操作坞不会占屏幕', () => {
     useProjectStore.getState().setTab('facade');
     expect(useProjectStore.getState().tab).toBe('facade');
