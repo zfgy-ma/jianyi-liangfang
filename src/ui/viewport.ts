@@ -1,4 +1,5 @@
 import type { MoveDirection, PointLike, Project, Vec2 } from '../core/types';
+import type { ViewDirection } from '../core/facade';
 
 /**
  * 视图：正交投影相机 + 屏幕映射。
@@ -45,6 +46,22 @@ export const STANDARD_VIEWS: Record<
 export function isElevationView(key: StandardViewKey): boolean {
   return key !== 'plan';
 }
+
+/** 标准视图 ←→ 观察方位 */
+export const VIEW_DIRECTION_OF: Record<StandardViewKey, ViewDirection> = {
+  plan: 'S',
+  east: 'E',
+  south: 'S',
+  west: 'W',
+  north: 'N',
+};
+
+export const STANDARD_VIEW_OF_DIRECTION: Record<ViewDirection, StandardViewKey> = {
+  E: 'east',
+  S: 'south',
+  W: 'west',
+  N: 'north',
+};
 
 /** 找出离当前视角最近的标准正视图，平面图一律回正到北朝上 */
 export function nearestStandardView(yaw: number, pitch: number): StandardViewKey {
@@ -154,6 +171,29 @@ export function fitViewport(
     centerX: (minX + maxX) / 2,
     centerY: (minY + maxY) / 2,
     scale,
+  };
+}
+
+/** 把一张立面图放进画面中央（二维立面不经过相机） */
+export function fitElevationViewport(
+  width: number,
+  height: number,
+  contentWidth: number,
+  contentHeight: number,
+): Viewport {
+  const spanX = Math.max(contentWidth, 1000);
+  const spanY = Math.max(contentHeight, 1000);
+  return {
+    centerX: spanX / 2,
+    centerY: spanY / 2,
+    scale: Math.max(
+      0.005,
+      Math.min((width * 0.78) / spanX, (height * 0.72) / spanY, 1),
+    ),
+    width,
+    height,
+    yaw: 0,
+    pitch: 0,
   };
 }
 

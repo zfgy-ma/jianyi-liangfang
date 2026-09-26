@@ -13,7 +13,8 @@ describe('视角旋转方向', () => {
   });
 
   it('俯仰角夹在 0 到 90 度之间', () => {
-    expect(rotateCamera({ yaw: 0, pitch: 2 }, 0, -100).pitch).toBe(0);
+    // 最低留 5 度，避免平视时地平面塌成一条线
+    expect(rotateCamera({ yaw: 0, pitch: 8 }, 0, -100).pitch).toBe(5);
     expect(rotateCamera({ yaw: 0, pitch: 88 }, 0, 100).pitch).toBe(90);
   });
 

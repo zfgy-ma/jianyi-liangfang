@@ -16,7 +16,17 @@ export interface FacadeWallRect {
   wallId: string;
   left: number;
   width: number;
+  /** 墙底标高，通常为 0 */
+  bottom: number;
   height: number;
+}
+
+/** 竖直方向线条（用户用"上/下"画的线）在立面上的投影 */
+export interface FacadeVertical {
+  wallId: string;
+  x: number;
+  bottom: number;
+  top: number;
 }
 
 export interface FacadeOpeningRect {
@@ -34,7 +44,12 @@ export interface FacadeView {
   label: string;
   totalWidth: number;
   maxHeight: number;
+  /** 并集轮廓，用来填充建筑体量 */
   walls: FacadeWallRect[];
+  /** 每面墙各自的投影矩形，用来画内部可见分隔线 */
+  faces: FacadeWallRect[];
+  /** 竖直方向线条的投影 */
+  verticals: FacadeVertical[];
   openings: FacadeOpeningRect[];
 }
 
@@ -75,27 +90,33 @@ export function buildSilhouette(rects: FacadeWallRect[]): FacadeWallRect[] {
     const right = edges[index + 1];
     if (right - left <= 0) continue;
 
-    let height = 0;
+    let bottom = Number.POSITIVE_INFINITY;
+    let top = Number.NEGATIVE_INFINITY;
     let wallId = '';
     for (const rect of rects) {
       const covers =
         rect.left <= left + 1e-6 && rect.left + rect.width >= right - 1e-6;
-      if (covers && rect.height > height) {
-        height = rect.height;
+      if (!covers) continue;
+      bottom = Math.min(bottom, rect.bottom);
+      if (rect.bottom + rect.height > top) {
+        top = rect.bottom + rect.height;
         wallId = rect.wallId;
       }
     }
-    if (height <= 0) continue;
+    if (!Number.isFinite(bottom) || !Number.isFinite(top) || top - bottom <= 0) {
+      continue;
+    }
 
     const last = strips[strips.length - 1];
     if (
       last &&
-      Math.abs(last.height - height) < 1 &&
+      Math.abs(last.bottom - bottom) < 1 &&
+      Math.abs(last.bottom + last.height - top) < 1 &&
       Math.abs(last.left + last.width - left) < 1
     ) {
       last.width = right - last.left;
     } else {
-      strips.push({ wallId, left, width: right - left, height });
+      strips.push({ wallId, left, width: right - left, bottom, height: top - bottom });
     }
   }
   return strips;
@@ -126,7 +147,16 @@ export function buildFacade(project: Project, direction: ViewDirection): FacadeV
   const label = VIEW_LABEL[direction];
   const points = Object.values(project.points);
   if (points.length === 0) {
-    return { direction, label, totalWidth: 0, maxHeight: 0, walls: [], openings: [] };
+    return {
+      direction,
+      label,
+      totalWidth: 0,
+      maxHeight: 0,
+      walls: [],
+      faces: [],
+      verticals: [],
+      openings: [],
+    };
   }
 
   const xs = points.map((point) => point.x);
@@ -147,30 +177,46 @@ export function buildFacade(project: Project, direction: ViewDirection): FacadeV
     direction === 'E' || direction === 'W' ? maxY - minY : maxX - minX;
   const view = VIEW_VECTOR[direction];
   const walls: FacadeWallRect[] = [];
+  const faces: FacadeWallRect[] = [];
+  const verticals: FacadeVertical[] = [];
   const openings: FacadeOpeningRect[] = [];
   let maxHeight = 0;
 
   for (const wall of Object.values(project.walls)) {
-    if (wall.isHelper || wall.thickness <= 0) continue;
-    const normal = outwardNormal(project, wall);
-    if (!normal) continue;
-    if (normal.x * view.x + normal.y * view.y <= 0) continue;
+    if (wall.isHelper) continue;
     const start = project.points[wall.startPointId];
     const end = project.points[wall.endPointId];
-    // 竖直方向的墙是立面线条，不参与平面立面投影
-    if (start.z !== end.z) continue;
+    if (!start || !end) continue;
+    // 竖直方向的墙：在立面上就是一段竖线
+    if (start.z !== end.z) {
+      verticals.push({
+        wallId: wall.id,
+        x: horizontal(start),
+        bottom: Math.min(start.z, end.z),
+        top: Math.max(start.z, end.z),
+      });
+      maxHeight = Math.max(maxHeight, start.z, end.z);
+      continue;
+    }
+    // 平面墙：只画朝向观察者的那一侧
+    const normal = outwardNormal(project, wall);
+    if (!normal || normal.x * view.x + normal.y * view.y <= 0) continue;
     const direction2 = directionOf(start, end);
     if (!direction2) continue;
     const height = effectiveWallHeight(project, wall);
-    maxHeight = Math.max(maxHeight, height);
+    const bottom = start.z;
+    maxHeight = Math.max(maxHeight, bottom + height);
     const startX = horizontal(start);
     const endX = horizontal(end);
-    walls.push({
+    const rect: FacadeWallRect = {
       wallId: wall.id,
       left: Math.min(startX, endX),
       width: Math.abs(endX - startX),
+      bottom,
       height,
-    });
+    };
+    walls.push(rect);
+    faces.push(rect);
 
     const unit = DIRECTION_VECTOR[direction2];
     for (const opening of Object.values(project.openings)) {
@@ -203,6 +249,67 @@ export function buildFacade(project: Project, direction: ViewDirection): FacadeV
     totalWidth,
     maxHeight,
     walls: buildSilhouette(walls),
+    faces,
+    verticals,
     openings,
   };
+}
+
+/** 这面墙朝向哪个方向：观察者要站在这一侧才能看到它的正面 */
+export function facingDirection(project: Project, wall: Wall): ViewDirection {
+  const normal = outwardNormal(project, wall);
+  if (!normal) return 'S';
+  if (Math.abs(normal.x) >= Math.abs(normal.y)) {
+    return normal.x >= 0 ? 'E' : 'W';
+  }
+  return normal.y >= 0 ? 'N' : 'S';
+}
+
+/**
+ * 与这面墙共线、且首尾相连的整条墙链。
+ * 选中的可能只是被拆开的一小段，切立面时必须把整条都算进去。
+ */
+export function connectedRun(project: Project, wallId: string): string[] {
+  const wall = project.walls[wallId];
+  if (!wall) return [];
+  const head = project.points[wall.startPointId];
+  const tail = project.points[wall.endPointId];
+  if (!head || !tail) return [wallId];
+  if (head.z !== tail.z) return [wallId];
+
+  const horizontal = head.y === tail.y;
+  const lineValue = horizontal ? head.y : head.x;
+  const onSameLine = Object.values(project.walls).filter((item) => {
+    if (item.isHelper) return false;
+    const from = project.points[item.startPointId];
+    const to = project.points[item.endPointId];
+    if (!from || !to || from.z !== to.z) return false;
+    return horizontal
+      ? from.y === lineValue && to.y === lineValue
+      : from.x === lineValue && to.x === lineValue;
+  });
+
+  const run = new Set<string>([wallId]);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const item of onSameLine) {
+      if (run.has(item.id)) continue;
+      const touches = [...run].some((id) => {
+        const other = project.walls[id];
+        if (!other) return false;
+        return (
+          other.startPointId === item.startPointId ||
+          other.startPointId === item.endPointId ||
+          other.endPointId === item.startPointId ||
+          other.endPointId === item.endPointId
+        );
+      });
+      if (touches) {
+        run.add(item.id);
+        grew = true;
+      }
+    }
+  }
+  return [...run];
 }

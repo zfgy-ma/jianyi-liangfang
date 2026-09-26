@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { buildFacade, buildSilhouette, effectiveWallHeight } from './facade';
+import {
+  buildFacade,
+  buildSilhouette,
+  connectedRun,
+  effectiveWallHeight,
+  facingDirection,
+} from './facade';
 import { createOriginPoint, createProject, drawWall } from './project';
 import { splitWallAt } from './split';
 import type { Direction, OffsetSide, Project } from './types';
@@ -37,10 +43,27 @@ function squareWithInnerWall() {
 }
 
 describe('四向立面', () => {
+  it('选中线条决定切到哪一面立面', () => {
+    const origin = createOriginPoint(createProject('朝向测试'), 0, 0);
+    const south = draw(origin.project, origin.pointId, 'E', 5000, 'right');
+    // 东西向、墙厚朝南 → 观察者站在南侧看
+    expect(facingDirection(south.project, south.project.walls[south.wallId])).toBe('S');
+  });
+
+  it('被拆开的一小段也能还原成整条连通的墙', () => {
+    const origin = createOriginPoint(createProject('连通测试'), 0, 0);
+    const first = draw(origin.project, origin.pointId, 'E', 3000);
+    const second = draw(first.project, first.pointId, 'E', 3000);
+    const split = splitWallAt(second.project, first.wallId, 1500);
+    if ('error' in split) throw new Error(split.error);
+    const run = connectedRun(split.project, first.wallId);
+    expect(run.length).toBe(3);
+  });
+
   it('高度不同的两段墙求并集后，转角处留下台阶而不是被抹平', () => {
     const strips = buildSilhouette([
-      { wallId: 'a', left: 0, width: 5000, height: 2800 },
-      { wallId: 'b', left: 3000, width: 5000, height: 1800 },
+      { wallId: 'a', left: 0, width: 5000, bottom: 0, height: 2800 },
+      { wallId: 'b', left: 3000, width: 5000, bottom: 0, height: 1800 },
     ]);
     expect(strips.map((strip) => [strip.left, strip.width, strip.height])).toEqual([
       [0, 5000, 2800],

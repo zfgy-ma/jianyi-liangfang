@@ -868,6 +868,18 @@ body {
   fill: var(--ink-soft);
 }
 
+/* 立面里的内部分隔线与竖向投影线 */
+.facade-face-line line,
+.facade-vertical-line {
+  stroke: var(--ink);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.facade-vertical-line {
+  stroke: var(--accent);
+}
+
 .axon-wall {
   stroke: var(--ink);
   stroke-width: 1.5;

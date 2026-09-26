@@ -255,11 +255,25 @@ export function facadeSheet(
       layer: 'WALL',
       closed: true,
       points: [
-        { x: wall.left, y: 0 },
-        { x: wall.left + wall.width, y: 0 },
-        { x: wall.left + wall.width, y: wall.height },
-        { x: wall.left, y: wall.height },
+        { x: wall.left, y: wall.bottom },
+        { x: wall.left + wall.width, y: wall.bottom },
+        { x: wall.left + wall.width, y: wall.bottom + wall.height },
+        { x: wall.left, y: wall.bottom + wall.height },
       ].map(page),
+    });
+  }
+
+  // 平面上用“上/下”画的竖线也投影进立面
+  for (const line of view.verticals) {
+    const from = page({ x: line.x, y: line.bottom });
+    const to = page({ x: line.x, y: line.top });
+    entities.push({
+      kind: 'line',
+      layer: 'WALL',
+      x1: from.x,
+      y1: from.y,
+      x2: to.x,
+      y2: to.y,
     });
   }
 

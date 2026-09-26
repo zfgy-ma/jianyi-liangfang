@@ -11,8 +11,6 @@ interface PlanOpeningsProps {
   conflictIds: Set<string>;
   /** 长度数字的字高，单位毫米；跟着缩放等比放大 */
   labelHeight: number;
-  /** 只画这一面墙，立面视角用 */
-  onlyWallId?: string | null;
 }
 
 /** 沿墙推进一段距离后的世界坐标，保留原始高度 */
@@ -58,15 +56,12 @@ export function PlanOpenings({
   draftIds,
   conflictIds,
   labelHeight,
-  onlyWallId = null,
 }: PlanOpeningsProps) {
   const sp = (point: Vec2) => toScreen(viewport, point);
 
   return (
     <g>
-      {Object.values(project.walls)
-        .filter((wall: Wall) => !onlyWallId || wall.id === onlyWallId)
-        .map((wall: Wall) => {
+      {Object.values(project.walls).map((wall: Wall) => {
         const start = project.points[wall.startPointId];
         const end = project.points[wall.endPointId];
         if (!start || !end) return null;

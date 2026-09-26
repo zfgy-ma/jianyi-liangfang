@@ -1,15 +1,19 @@
+import { buildFacade, connectedRun, facingDirection } from '../core/facade';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useProjectStore } from '../store/useProjectStore';
 import { PlanShapes } from './PlanShapes';
 import { PlanGrid } from './PlanGrid';
 import { AxisGizmo } from './AxisGizmo';
+import { ElevationLayer } from './ElevationLayer';
 import { resolveTap, type PendingTap } from './tap';
 import { rotateCamera } from './rotation';
 import {
   fitViewport,
+  fitElevationViewport,
   nearestStandardView,
   nextStandardView,
   isElevationView,
+  VIEW_DIRECTION_OF,
   screenToView,
   STANDARD_VIEWS,
   snapYawToCardinal,
@@ -98,9 +102,16 @@ export function PlanCanvas({
   // 切换视图、画布尺寸变化、或换成另一个工程（例如刷新后自动载入）时按预设重新取景
   const fitKey = `${project.id}|${size.width}x${size.height}|${preset.yaw}x${preset.pitch}`;
   useEffect(() => {
+    // 立面模式下由立面取景接管，这里不要覆盖
+    if (
+      selectedWallId &&
+      isElevationView(nearestStandardView(viewport.yaw, viewport.pitch))
+    ) {
+      return;
+    }
     setViewport(fitViewport(project, size.width, size.height, preset.yaw, preset.pitch));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fitKey]);
+  }, [fitKey, selectedWallId]);
 
   // 相机同步到 store：方向键据此决定哪些键置灰不可点
   useEffect(() => {
@@ -262,9 +273,51 @@ export function PlanCanvas({
     setViewport(fitViewport(project, size.width, size.height, target.yaw, target.pitch));
   };
 
-  // 立面视角下只画选中的那一面墙，其他墙的高度线条不会混进来
-  const showOnlyWallId =
-    selectedWallId && isElevationView(currentViewKey) ? selectedWallId : null;
+  // 立面视角：不再用三维相机，而是把建筑朝该方向压平成二维立面图
+  const elevationKey =
+    isElevationView(currentViewKey) && selectedWallId ? currentViewKey : null;
+  const facadeView = elevationKey
+    ? buildFacade(project, VIEW_DIRECTION_OF[elevationKey])
+    : null;
+
+  useEffect(() => {
+    if (!facadeView) return;
+    setViewport(
+      fitElevationViewport(
+        size.width,
+        size.height,
+        facadeView.totalWidth,
+        facadeView.maxHeight,
+      ),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    facadeView?.direction,
+    facadeView?.totalWidth,
+    facadeView?.maxHeight,
+    size.width,
+    size.height,
+  ]);
+
+  /** “立面”按钮：切到选中线条所在的那一面立面 */
+  const goToWallElevation = () => {
+    const wall = selectedWallId ? project.walls[selectedWallId] : null;
+    if (!wall) {
+      setNotice('请先点选一条线条，再点“立面”');
+      return;
+    }
+    const direction = facingDirection(project, wall);
+    const run = connectedRun(project, wall.id);
+    const view = buildFacade(project, direction);
+    setViewport(
+      fitElevationViewport(size.width, size.height, view.totalWidth, view.maxHeight),
+    );
+    setNotice(
+      run.length > 1
+        ? `已切到${view.label}，这条线所在的整面墙（共 ${run.length} 段）都算进来了`
+        : `已切到${view.label}`,
+    );
+  };
 
   const scaleLabel =
     viewport.scale >= 1 ? '1:1' : `1:${Math.round(1 / viewport.scale)}`;
@@ -281,20 +334,28 @@ export function PlanCanvas({
         onPointerCancel={handlePointerUp}
         onWheel={handleWheel}
       >
-        <PlanGrid viewport={viewport} />
-        <PlanShapes
-          project={project}
-          viewport={viewport}
-          activePointId={activePointId}
-          selectedWallId={selectedWallId}
-          draftWallIds={roomDraft}
-          onlyWallId={showOnlyWallId}
-          extrude={viewport.pitch < 80}
-        />
+        {facadeView ? (
+          <ElevationLayer view={facadeView} viewport={viewport} />
+        ) : (
+          <>
+            <PlanGrid viewport={viewport} />
+            <PlanShapes
+              project={project}
+              viewport={viewport}
+              activePointId={activePointId}
+              selectedWallId={selectedWallId}
+              draftWallIds={roomDraft}
+              extrude={viewport.pitch < 80}
+            />
+          </>
+        )}
       </svg>
       <div className="canvas-tools">
         <button type="button" className="tool-button" onClick={cycleStandardView}>
           切到{STANDARD_VIEWS[nextStandardView(currentViewKey)].label}
+        </button>
+        <button type="button" className="tool-button" onClick={goToWallElevation}>
+          立面
         </button>
         <button type="button" className="tool-button" onClick={fit}>
           适配视图

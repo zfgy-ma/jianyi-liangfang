@@ -12,6 +12,7 @@ import { useProjectStore } from '../store/useProjectStore';
 import { App } from '../App';
 import { Dock } from './Dock';
 import { AxisGizmo } from './AxisGizmo';
+import { ElevationLayer } from './ElevationLayer';
 import { FacadeCanvas } from './FacadeCanvas';
 import { PlanCanvas } from './PlanCanvas';
 import { PlanGrid } from './PlanGrid';
@@ -235,30 +236,27 @@ describe('界面结构', () => {
     expect(html).toContain('stroke="#2f6fd0"');
   });
 
-  it('立面视角只画选中的那一面墙', () => {
-    const project = closedRoom();
-    const wallIds = Object.keys(project.walls);
-    const viewport = {
-      centerX: 0,
-      centerY: 0,
-      scale: 0.05,
-      width: 800,
-      height: 600,
-      yaw: 90,
-      pitch: 0,
-    };
+  it('立面视角渲染二维立面图：体量、墙面分隔与尺寸线都在', () => {
+    const view = buildFacade(closedRoom(), 'E');
     const html = render(
-      <PlanShapes
-        project={project}
-        viewport={viewport}
-        activePointId={null}
-        selectedWallId={wallIds[0]}
-        draftWallIds={[]}
-        onlyWallId={wallIds[0]}
+      <ElevationLayer
+        view={view}
+        viewport={{
+          centerX: 0,
+          centerY: 0,
+          scale: 0.05,
+          width: 800,
+          height: 600,
+          yaw: 0,
+          pitch: 0,
+        }}
       />,
     );
-    expect(html).toContain(`data-wall-id="${wallIds[0]}"`);
-    expect(html).not.toContain(`data-wall-id="${wallIds[1]}"`);
+    expect(html).toContain('elevation-mass');
+    expect(html).toContain('elevation-face');
+    expect(html).toContain('elevation-dimension');
+    // 平视时不再依赖三维相机，所以一定画得出东西
+    expect(html).toContain('<line');
   });
 
   it('三维与等轴测视图把墙挤出体量：有顶面与竖棱', () => {

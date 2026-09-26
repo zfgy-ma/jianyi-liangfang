@@ -11,8 +11,10 @@ export function rotateCamera(
   deltaY: number,
   options: { lockYaw?: boolean } = {},
 ): { yaw: number; pitch: number } {
+  // 最低留一点俯角：完全平视时地平面会塌成一条线，看不出图形
+  const MIN_PITCH = 5;
   return {
     yaw: options.lockYaw ? camera.yaw : camera.yaw - deltaX * DEGREE_PER_PIXEL,
-    pitch: Math.max(0, Math.min(90, camera.pitch + deltaY * DEGREE_PER_PIXEL)),
+    pitch: Math.max(MIN_PITCH, Math.min(90, camera.pitch + deltaY * DEGREE_PER_PIXEL)),
   };
 }

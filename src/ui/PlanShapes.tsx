@@ -13,8 +13,6 @@ interface PlanShapesProps {
   activePointId: string | null;
   selectedWallId: string | null;
   draftWallIds: string[];
-  /** 只显示这一面墙，立面视角用 */
-  onlyWallId?: string | null;
   /** 是否把墙体挤出高度（三维、等轴测视图） */
   extrude?: boolean;
 }
@@ -25,17 +23,10 @@ export function PlanShapes({
   activePointId,
   selectedWallId,
   draftWallIds,
-  onlyWallId = null,
   extrude = false,
 }: PlanShapesProps) {
   const draftIds = useMemo(() => new Set(draftWallIds), [draftWallIds]);
-  const bodies = useMemo(
-    () =>
-      buildWallBodies(project).filter(
-        (body) => !onlyWallId || body.wallId === onlyWallId,
-      ),
-    [project, onlyWallId],
-  );
+  const bodies = useMemo(() => buildWallBodies(project), [project]);
   const conflicts = useMemo(
     () => new Set(findWallConflicts(project).map((item) => item.wallId)),
     [project],
@@ -51,9 +42,7 @@ export function PlanShapes({
     return start.y === end.y ? 'ew' : 'ns';
   };
 
-  const walls = Object.values(project.walls)
-    .filter((wall) => !onlyWallId || wall.id === onlyWallId)
-    .map((wall) => {
+  const walls = Object.values(project.walls).map((wall) => {
     const startPoint = project.points[wall.startPointId];
     const endPoint = project.points[wall.endPointId];
     return {
@@ -127,7 +116,6 @@ export function PlanShapes({
         draftIds={draftIds}
         conflictIds={conflicts}
         labelHeight={labelHeight}
-        onlyWallId={onlyWallId}
       />
 
       {Object.values(project.points).map((point) => {

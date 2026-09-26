@@ -44,7 +44,7 @@ function FacadePreview({ view }: { view: FacadeView }) {
             <rect
               className="elevation-wall"
               x={wall.left}
-              y={view.maxHeight - wall.height}
+              y={view.maxHeight - (wall.bottom + wall.height)}
               width={wall.width}
               height={wall.height}
             />
@@ -87,12 +87,40 @@ function FacadePreview({ view }: { view: FacadeView }) {
             </text>
           </g>
         ))}
+        {/* 每面墙自己的竖向分隔线，体现转角与分段 */}
+        {view.faces.map((face) => (
+          <g key={`face-${face.wallId}`} className="facade-face-line">
+            <line
+              x1={face.left}
+              y1={view.maxHeight - face.bottom}
+              x2={face.left}
+              y2={view.maxHeight - (face.bottom + face.height)}
+            />
+            <line
+              x1={face.left + face.width}
+              y1={view.maxHeight - face.bottom}
+              x2={face.left + face.width}
+              y2={view.maxHeight - (face.bottom + face.height)}
+            />
+          </g>
+        ))}
+        {/* 平面上用“上/下”画的竖线也要投影到立面里 */}
+        {view.verticals.map((line) => (
+          <line
+            key={`vertical-${line.wallId}`}
+            className="facade-vertical-line"
+            x1={line.x}
+            y1={view.maxHeight - line.bottom}
+            x2={line.x}
+            y2={view.maxHeight - line.top}
+          />
+        ))}
         {view.openings.map((opening) => (
           <rect
             key={opening.id}
             className={opening.kind === 'window' ? 'elevation-opening' : 'elevation-door'}
             x={opening.left}
-            y={view.maxHeight - opening.bottom - opening.height}
+            y={view.maxHeight - (opening.bottom + opening.height)}
             width={opening.width}
             height={opening.height}
           />
