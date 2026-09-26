@@ -249,7 +249,8 @@ export function facadeSheet(
   const entities: DxfEntity[] = [];
   const page = context.toPage;
 
-  for (const wall of view.walls) {
+  // 与屏幕一致：每面外墙从远到近输出，转角棱线不会漏
+  for (const wall of view.faces) {
     entities.push({
       kind: 'polyline',
       layer: 'WALL',
@@ -347,7 +348,7 @@ export function buildProjectDxf(project: Project): ProjectDxfResult {
 
   for (const direction of ['E', 'S', 'W', 'N'] as ViewDirection[]) {
     const view = buildFacade(project, direction);
-    if (view.walls.length === 0) continue;
+    if (view.faces.length === 0) continue;
     const scale = pickScale(view.totalWidth, view.maxHeight);
     const frame = { minX: 0, minY: 0, maxX: view.totalWidth, maxY: view.maxHeight };
     sheets.push({

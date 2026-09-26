@@ -13,7 +13,7 @@ function FacadePreview({
   // 尺寸数字放大，放在尺寸线中间，线在数字处断开
   const labelSize = Math.max(sheet.width, sheet.height) * 0.04;
   const dimensionY = view.maxHeight + labelSize * 1.8;
-  const empty = view.walls.length === 0;
+  const empty = view.faces.length === 0;
 
   return (
     <figure className={empty ? 'facade-card facade-card-empty' : 'facade-card'}>
@@ -43,15 +43,34 @@ function FacadePreview({
           </>
         ) : null}
 
-        {view.walls.map((wall) => (
-          <g key={wall.wallId}>
+        {/* 每面外墙从远到近绘制：近处实心墙面遮住后面的线，转角棱线保留 */}
+        {view.faces.map((face) => (
+          <g key={face.wallId}>
             <rect
               className="elevation-wall"
-              x={wall.left}
-              y={view.maxHeight - (wall.bottom + wall.height)}
-              width={wall.width}
-              height={wall.height}
+              x={face.left}
+              y={view.maxHeight - (face.bottom + face.height)}
+              width={face.width}
+              height={face.height}
             />
+            {view.openings
+              .filter((opening) => opening.wallId === face.wallId)
+              .map((opening) => (
+                <rect
+                  key={opening.id}
+                  className={
+                    opening.kind === 'window' ? 'elevation-opening' : 'elevation-door'
+                  }
+                  x={opening.left}
+                  y={view.maxHeight - (opening.bottom + opening.height)}
+                  width={opening.width}
+                  height={opening.height}
+                />
+              ))}
+          </g>
+        ))}
+        {view.walls.map((wall) => (
+          <g key={`dimension-${wall.wallId}-${wall.left}`}>
             <line
               className="facade-dimension"
               x1={wall.left}
@@ -91,23 +110,6 @@ function FacadePreview({
             </text>
           </g>
         ))}
-        {/* 每面墙自己的竖向分隔线，体现转角与分段 */}
-        {view.faces.map((face) => (
-          <g key={`face-${face.wallId}`} className="facade-face-line">
-            <line
-              x1={face.left}
-              y1={view.maxHeight - face.bottom}
-              x2={face.left}
-              y2={view.maxHeight - (face.bottom + face.height)}
-            />
-            <line
-              x1={face.left + face.width}
-              y1={view.maxHeight - face.bottom}
-              x2={face.left + face.width}
-              y2={view.maxHeight - (face.bottom + face.height)}
-            />
-          </g>
-        ))}
         {/* 平面上用“上/下”画的竖线也要投影到立面里 */}
         {view.verticals.map((line) => (
           <line
@@ -117,16 +119,6 @@ function FacadePreview({
             y1={view.maxHeight - line.bottom}
             x2={line.x}
             y2={view.maxHeight - line.top}
-          />
-        ))}
-        {view.openings.map((opening) => (
-          <rect
-            key={opening.id}
-            className={opening.kind === 'window' ? 'elevation-opening' : 'elevation-door'}
-            x={opening.left}
-            y={view.maxHeight - (opening.bottom + opening.height)}
-            width={opening.width}
-            height={opening.height}
           />
         ))}
         {/* 墙高标注：左侧竖向尺寸线，数字旋转 90 度坐在断口里 */}

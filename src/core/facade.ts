@@ -1,5 +1,5 @@
 import { DIRECTION_VECTOR, directionOf } from './direction';
-import type { OpeningKind, Project, Vec2, Wall } from './types';
+import type { OpeningKind, Project, Vec2, Wall, WallKind } from './types';
 import { leftNormal } from './wallOffset';
 
 /** 观察者所在的方位 */
@@ -21,6 +21,16 @@ export interface FacadeWallRect {
   height: number;
 }
 
+/**
+ * 一面墙在立面上的投影。
+ * depth 是离观察者的进深，越大越远；渲染时从远到近画，
+ * 近处墙的实心填充会挡住后面的线，转角因此不会被并集抹掉。
+ */
+export interface FacadeFace extends FacadeWallRect {
+  depth: number;
+  kind: WallKind;
+}
+
 /** 竖直方向线条（用户用"上/下"画的线）在立面上的投影 */
 export interface FacadeVertical {
   wallId: string;
@@ -37,6 +47,8 @@ export interface FacadeOpeningRect {
   width: number;
   bottom: number;
   height: number;
+  /** 与所在墙面一致的进深，用于跟随墙面排序 */
+  depth: number;
 }
 
 export interface FacadeView {
@@ -46,8 +58,8 @@ export interface FacadeView {
   maxHeight: number;
   /** 并集轮廓，用来填充建筑体量 */
   walls: FacadeWallRect[];
-  /** 每面墙各自的投影矩形，用来画内部可见分隔线 */
-  faces: FacadeWallRect[];
+  /** 每面外墙各自的投影矩形，按从远到近排序 */
+  faces: FacadeFace[];
   /** 竖直方向线条的投影 */
   verticals: FacadeVertical[];
   openings: FacadeOpeningRect[];
@@ -134,8 +146,14 @@ const VIEW_VECTOR: Record<ViewDirection, Vec2> = {
  */
 export function buildFacade(project: Project, direction: ViewDirection): FacadeView {
   const label = VIEW_LABEL[direction];
-  const points = Object.values(project.points);
-  if (points.length === 0) {
+  // 立面只认实体墙的包围盒；隐形定位线不参与，免得把图纸撑大
+  const solidWalls = Object.values(project.walls).filter((wall) => !wall.isHelper);
+  const solidPoints = solidWalls.flatMap((wall) => {
+    const start = project.points[wall.startPointId];
+    const end = project.points[wall.endPointId];
+    return start && end ? [start, end] : [];
+  });
+  if (solidPoints.length === 0) {
     return {
       direction,
       label,
@@ -148,8 +166,8 @@ export function buildFacade(project: Project, direction: ViewDirection): FacadeV
     };
   }
 
-  const xs = points.map((point) => point.x);
-  const ys = points.map((point) => point.y);
+  const xs = solidPoints.map((point) => point.x);
+  const ys = solidPoints.map((point) => point.y);
   const minX = Math.min(...xs);
   const maxX = Math.max(...xs);
   const minY = Math.min(...ys);
@@ -165,14 +183,15 @@ export function buildFacade(project: Project, direction: ViewDirection): FacadeV
   const totalWidth =
     direction === 'E' || direction === 'W' ? maxY - minY : maxX - minX;
   const view = VIEW_VECTOR[direction];
-  const walls: FacadeWallRect[] = [];
-  const faces: FacadeWallRect[] = [];
+  const projected = (position: Vec2): number =>
+    position.x * view.x + position.y * view.y;
+  const maxProjected = Math.max(...solidPoints.map(projected));
+  const faces: FacadeFace[] = [];
   const verticals: FacadeVertical[] = [];
   const openings: FacadeOpeningRect[] = [];
   let maxHeight = 0;
 
-  for (const wall of Object.values(project.walls)) {
-    if (wall.isHelper) continue;
+  for (const wall of solidWalls) {
     const start = project.points[wall.startPointId];
     const end = project.points[wall.endPointId];
     if (!start || !end) continue;
@@ -187,27 +206,31 @@ export function buildFacade(project: Project, direction: ViewDirection): FacadeV
       maxHeight = Math.max(maxHeight, start.z, end.z);
       continue;
     }
-    // 平面墙：只画朝向观察者的那一侧
-    const normal = outwardNormal(project, wall);
-    if (!normal || normal.x * view.x + normal.y * view.y <= 0) continue;
-    const direction2 = directionOf(start, end);
-    if (!direction2) continue;
-    const height = effectiveWallHeight(project, wall);
-    const bottom = start.z;
-    maxHeight = Math.max(maxHeight, bottom + height);
+    // 内墙被外墙挡住，第一版不进入立面投影
+    if (wall.kind === 'inner') continue;
     const startX = horizontal(start);
     const endX = horizontal(end);
-    const rect: FacadeWallRect = {
+    const width = Math.abs(endX - startX);
+    // 与视线平行的墙投影为零宽，由相邻正墙的端点竖线表达
+    if (width <= 0) continue;
+    const wallDirection = directionOf(start, end);
+    if (!wallDirection) continue;
+    const height = effectiveWallHeight(project, wall);
+    const bottom = Math.min(start.z, end.z);
+    maxHeight = Math.max(maxHeight, bottom + height);
+    const middle = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
+    const depth = maxProjected - projected(middle);
+    faces.push({
       wallId: wall.id,
       left: Math.min(startX, endX),
-      width: Math.abs(endX - startX),
+      width,
       bottom,
       height,
-    };
-    walls.push(rect);
-    faces.push(rect);
+      depth,
+      kind: wall.kind,
+    });
 
-    const unit = DIRECTION_VECTOR[direction2];
+    const unit = DIRECTION_VECTOR[wallDirection];
     for (const opening of Object.values(project.openings)) {
       if (opening.wallId !== wall.id) continue;
       const atStart = {
@@ -228,16 +251,21 @@ export function buildFacade(project: Project, direction: ViewDirection): FacadeV
         width: Math.abs(second - first),
         bottom: opening.sillHeight,
         height: opening.height,
+        depth,
       });
     }
   }
+
+  // 远的先画、近的后画：近处墙面实心遮挡后面的线，转角因此保持可见
+  faces.sort((left, right) => right.depth - left.depth);
+  openings.sort((left, right) => right.depth - left.depth);
 
   return {
     direction,
     label,
     totalWidth,
     maxHeight,
-    walls: buildSilhouette(walls),
+    walls: buildSilhouette(faces),
     faces,
     verticals,
     openings,
