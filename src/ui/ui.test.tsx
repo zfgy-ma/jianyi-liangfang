@@ -367,6 +367,13 @@ describe('界面结构', () => {
     expect(east).toContain('wall-side');
     const plan = exportSvg('view-plan', <PlanCanvas preset={{ yaw: 0, pitch: 90 }} />);
     expect(plan).toContain('plan-grid');
+    const iso = exportSvg(
+      'view-iso',
+      <PlanCanvas preset={{ yaw: 45, pitch: 35.264 }} />,
+    );
+    // 三维视图必须有挤出体量与侧面，否则又回到"只有几根线"
+    expect(iso).toContain('wall-side');
+    expect(iso).toContain('wall-top');
   });
 
   it('上下方向的线条也有居中长度文字', () => {
