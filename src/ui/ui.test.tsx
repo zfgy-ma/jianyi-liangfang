@@ -6,6 +6,7 @@ import { act, type ReactElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { describe, expect, it } from 'vitest';
 import { buildFacade } from '../core/facade';
+import { buildWallBodies } from '../core/wallOffset';
 import { createOriginPoint, createProject, drawWall } from '../core/project';
 import type { Direction, OffsetSide, Project } from '../core/types';
 import { useProjectStore } from '../store/useProjectStore';
@@ -18,6 +19,7 @@ import { PlanGrid } from './PlanGrid';
 import { PlanShapes } from './PlanShapes';
 import { ProjectPanel } from './ProjectPanel';
 import { TabBar } from './TabBar';
+import { fitViewport, toScreen } from './viewport';
 
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
@@ -285,6 +287,32 @@ describe('界面结构', () => {
     expect(html).toContain('wall-top');
     expect(html).toContain('wall-edge');
     expect(html).toContain('wall-solid-ew');
+    // 竖直侧面必须画出来：少了它，转到平视立面时只剩几根竖棱，看着就是空的
+    expect(html).toContain('wall-side');
+    const sideCount = (html.match(/class="wall-side"/g) ?? []).length;
+    expect(sideCount).toBeGreaterThanOrEqual(16);
+  });
+
+  it('转到平视立面时画面仍被墙体占满，不会缩成一小块', () => {
+    const project = closedRoom();
+    const width = 400;
+    const height = 700;
+    const viewport = fitViewport(project, width, height, 90, 0);
+    const projected: { x: number; y: number }[] = [];
+    for (const body of buildWallBodies(project)) {
+      for (const corner of body.polygon) {
+        for (const z of [0, project.wallHeight]) {
+          projected.push(toScreen(viewport, { ...corner, z }));
+        }
+      }
+    }
+    const xs = projected.map((point) => point.x);
+    const ys = projected.map((point) => point.y);
+    const spanX = (Math.max(...xs) - Math.min(...xs)) / width;
+    const spanY = (Math.max(...ys) - Math.min(...ys)) / height;
+    // 至少一个方向撑到画布的六成以上，另一个也不能塌成一条线
+    expect(Math.max(spanX, spanY)).toBeGreaterThan(0.6);
+    expect(Math.min(spanX, spanY)).toBeGreaterThan(0.2);
   });
 
   it('上下方向的线条也有居中长度文字', () => {

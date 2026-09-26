@@ -1153,8 +1153,27 @@ body {
 
 /* 三维与等轴测视图里的墙体体量：顶面 + 竖棱，按方向分色 */
 .wall-top {
-  fill: var(--wall-fill);
+  fill: #e2e7ee;
   stroke: none;
+}
+
+/* 墙的竖直侧面：平视看立面时靠它撑出图形 */
+.wall-side {
+  fill: #f4f6f9;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.wall-solid-ew .wall-side {
+  stroke: #c9453a;
+}
+
+.wall-solid-ns .wall-side {
+  stroke: #3c8b4a;
+}
+
+.wall-solid-ud .wall-side {
+  stroke: #2f6fd0;
 }
 
 .wall-edge {

@@ -72,6 +72,26 @@ export function PlanShapes({
                 key={`solid-${body.wallId}`}
                 className={`wall-solid wall-solid-${axisOf(body.wallId)}`}
               >
+                {/* 四个竖直侧面：没有它，平视时只剩几根竖棱，看着就是空的 */}
+                {body.polygon.map((point, index) => {
+                  const next = body.polygon[(index + 1) % body.polygon.length];
+                  const base = toScreen(viewport, point);
+                  const baseNext = toScreen(viewport, next);
+                  const topNext = toScreen(viewport, { ...next, z: height });
+                  const topPoint = toScreen(viewport, { ...point, z: height });
+                  return (
+                    <polygon
+                      key={`${body.wallId}-side-${index}`}
+                      className="wall-side"
+                      points={[
+                        `${base.x},${base.y}`,
+                        `${baseNext.x},${baseNext.y}`,
+                        `${topNext.x},${topNext.y}`,
+                        `${topPoint.x},${topPoint.y}`,
+                      ].join(' ')}
+                    />
+                  );
+                })}
                 <polygon
                   className="wall-top"
                   points={top.map((point) => `${point.x},${point.y}`).join(' ')}
