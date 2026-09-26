@@ -15,6 +15,7 @@ import { AxisGizmo } from './AxisGizmo';
 import { FacadeCanvas } from './FacadeCanvas';
 import { PlanCanvas } from './PlanCanvas';
 import { PlanGrid } from './PlanGrid';
+import { ProjectPanel } from './ProjectPanel';
 import { TabBar } from './TabBar';
 
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
@@ -173,6 +174,22 @@ describe('界面结构', () => {
     expect(html).toContain('data-point-id');
     // 平面锁定按钮在画布右下角，是个图标按钮
     expect(html).toContain('data-lock-state="locked"');
+    // 标准视图切换按钮就在适配视图旁边
+    expect(html).toContain('切到东西向');
+    // 线条按方向分色：这个户型有东西向的墙
+    expect(html).toContain('wall-line-ew');
+    // 长度数字字号是算出来的内联值，会跟着缩放等比变化
+    expect(html).toMatch(/class="wall-length"[^>]*font-size=/);
+  });
+
+  it('工程面板改成直接输入，三个“用键盘数值”按钮已删除', () => {
+    const html = render(<ProjectPanel />);
+    expect(html).toContain('统一层高');
+    expect(html).toContain('外墙厚度');
+    expect(html).toContain('prop-input');
+    expect(html).not.toContain('用键盘数值设为层高');
+    expect(html).not.toContain('用键盘数值设为外墙厚');
+    expect(html).not.toContain('把外墙厚应用到所有外墙');
   });
 
   it('四向立面永远四个框，某一侧没墙也留空框', () => {

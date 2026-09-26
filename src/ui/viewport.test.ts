@@ -5,6 +5,7 @@ import {
   snapView,
   snapYawToCardinal,
   STANDARD_VIEWS,
+  THREE_VIEW,
   toScreen,
   type Viewport,
 } from './viewport';
@@ -56,5 +57,9 @@ describe('三维投影', () => {
     expect(nextStandardView('plan')).toBe('ew');
     expect(nextStandardView('ew')).toBe('ns');
     expect(nextStandardView('ns')).toBe('plan');
+  });
+
+  it('三维视图默认以 45 度角查看', () => {
+    expect(THREE_VIEW).toEqual({ yaw: 45, pitch: 45 });
   });
 });
