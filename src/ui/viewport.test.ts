@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   enabledDirections,
+  fitElevationViewport,
   nearestStandardView,
   nextStandardView,
   snapView,
@@ -72,5 +73,15 @@ describe('三维投影', () => {
     expect(enabledDirections({ yaw: 90, pitch: 0 })).toEqual(['N', 'S', 'U', 'D']);
     // 南向/北向立面：平面外的南北方向置灰
     expect(enabledDirections({ yaw: 0, pitch: 0 })).toEqual(['E', 'W', 'U', 'D']);
+  });
+
+  it('立面取景会把相机摆到对应方向，避免画的和提示的对不上', () => {
+    const viewport = fitElevationViewport(800, 600, 10000, 8000, 180, 0);
+    expect(viewport.yaw).toBe(180);
+    expect(viewport.pitch).toBe(0);
+    // 内容居中并按比例缩放
+    expect(viewport.centerX).toBe(5000);
+    expect(viewport.centerY).toBe(4000);
+    expect(viewport.scale).toBeGreaterThan(0);
   });
 });

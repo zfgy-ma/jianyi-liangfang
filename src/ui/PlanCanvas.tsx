@@ -13,6 +13,7 @@ import {
   nearestStandardView,
   nextStandardView,
   isElevationView,
+  STANDARD_VIEW_OF_DIRECTION,
   VIEW_DIRECTION_OF,
   screenToView,
   STANDARD_VIEWS,
@@ -281,13 +282,16 @@ export function PlanCanvas({
     : null;
 
   useEffect(() => {
-    if (!facadeView) return;
+    if (!facadeView || !elevationKey) return;
+    const target = STANDARD_VIEWS[elevationKey];
     setViewport(
       fitElevationViewport(
         size.width,
         size.height,
         facadeView.totalWidth,
         facadeView.maxHeight,
+        target.yaw,
+        target.pitch,
       ),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -309,8 +313,16 @@ export function PlanCanvas({
     const direction = facingDirection(project, wall);
     const run = connectedRun(project, wall.id);
     const view = buildFacade(project, direction);
+    const target = STANDARD_VIEWS[STANDARD_VIEW_OF_DIRECTION[direction]];
     setViewport(
-      fitElevationViewport(size.width, size.height, view.totalWidth, view.maxHeight),
+      fitElevationViewport(
+        size.width,
+        size.height,
+        view.totalWidth,
+        view.maxHeight,
+        target.yaw,
+        target.pitch,
+      ),
     );
     setNotice(
       run.length > 1

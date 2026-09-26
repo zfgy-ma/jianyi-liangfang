@@ -880,6 +880,48 @@ body {
   stroke: var(--accent);
 }
 
+/* 二维立面层：SVG 的 rect 默认填充是黑色，这里必须显式给颜色 */
+.elevation-mass {
+  fill: #f2f4f7;
+  stroke: var(--ink);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.elevation-face line {
+  stroke: var(--ink);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.elevation-vertical {
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.elevation-ground {
+  stroke: var(--ink);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.elevation-dimension {
+  stroke: var(--ink-soft);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.elevation-label-text {
+  fill: var(--ink);
+  font-weight: 600;
+}
+
+.elevation-title {
+  fill: var(--ink);
+  font-weight: 600;
+}
+
 .axon-wall {
   stroke: var(--ink);
   stroke-width: 1.5;

@@ -31,6 +31,9 @@ export function ElevationLayer({
           <rect
             key={`mass-${strip.wallId}-${strip.left}`}
             className="elevation-mass"
+            fill="#f2f4f7"
+            stroke="#1d232b"
+            strokeWidth={2}
             x={topLeft.x}
             y={topLeft.y}
             width={bottomRight.x - topLeft.x}
@@ -47,9 +50,9 @@ export function ElevationLayer({
         const rightBottom = toScreen(face.left + face.width, face.bottom);
         return (
           <g key={`face-${face.wallId}`} className="elevation-face">
-            <line x1={leftBottom.x} y1={leftBottom.y} x2={leftTop.x} y2={leftTop.y} />
-            <line x1={rightBottom.x} y1={rightBottom.y} x2={rightTop.x} y2={rightTop.y} />
-            <line x1={leftTop.x} y1={leftTop.y} x2={rightTop.x} y2={rightTop.y} />
+            <line stroke="#1d232b" strokeWidth={1} x1={leftBottom.x} y1={leftBottom.y} x2={leftTop.x} y2={leftTop.y} />
+            <line stroke="#1d232b" strokeWidth={1} x1={rightBottom.x} y1={rightBottom.y} x2={rightTop.x} y2={rightTop.y} />
+            <line stroke="#1d232b" strokeWidth={1} x1={leftTop.x} y1={leftTop.y} x2={rightTop.x} y2={rightTop.y} />
           </g>
         );
       })}
@@ -61,6 +64,8 @@ export function ElevationLayer({
           <line
             key={`vertical-${line.wallId}`}
             className="elevation-vertical"
+            stroke="#1f6feb"
+            strokeWidth={1.5}
             x1={from.x}
             y1={from.y}
             x2={to.x}
@@ -89,15 +94,61 @@ export function ElevationLayer({
       {/* 地面线 */}
       <line
         className="elevation-ground"
+        stroke="#1d232b"
+        strokeWidth={2}
         x1={toScreen(-view.totalWidth * 0.05, 0).x}
         y1={toScreen(0, 0).y}
         x2={toScreen(view.totalWidth * 1.05, 0).x}
         y2={toScreen(0, 0).y}
       />
 
+      {/* 墙高标注：左侧竖向尺寸线，数字旋转 90 度 */}
+      {(() => {
+        const dimensionX = toScreen(-fontWorld * 1.8, 0).x;
+        const bottomY = toScreen(0, 0).y;
+        const topY = toScreen(0, view.maxHeight).y;
+        const middleY = (bottomY + topY) / 2;
+        const gap = fontPx * 1.1;
+        return (
+          <g>
+            <line
+              className="elevation-dimension"
+              stroke="#5b6673"
+              strokeWidth={1}
+              x1={dimensionX}
+              y1={bottomY}
+              x2={dimensionX}
+              y2={middleY + gap}
+            />
+            <line
+              className="elevation-dimension"
+              stroke="#5b6673"
+              strokeWidth={1}
+              x1={dimensionX}
+              y1={middleY - gap}
+              x2={dimensionX}
+              y2={topY}
+            />
+            <text
+              className="elevation-label-text"
+              fill="#1d232b"
+              x={dimensionX}
+              y={middleY}
+              fontSize={fontPx}
+              textAnchor="middle"
+              transform={`rotate(-90 ${dimensionX} ${middleY})`}
+            >
+              {Math.round(view.maxHeight)}
+            </text>
+          </g>
+        );
+      })()}
+
       {/* 总宽标注：数字坐在断开的尺寸线中间 */}
       <line
         className="elevation-dimension"
+        stroke="#5b6673"
+        strokeWidth={1}
         x1={toScreen(0, dimensionY).x}
         y1={toScreen(0, dimensionY).y}
         x2={toScreen(view.totalWidth / 2, dimensionY).x}
@@ -105,6 +156,8 @@ export function ElevationLayer({
       />
       <line
         className="elevation-dimension"
+        stroke="#5b6673"
+        strokeWidth={1}
         x1={toScreen(view.totalWidth / 2, dimensionY).x}
         y1={toScreen(0, dimensionY).y}
         x2={toScreen(view.totalWidth, dimensionY).x}

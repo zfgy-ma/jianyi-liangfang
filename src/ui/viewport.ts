@@ -180,6 +180,8 @@ export function fitElevationViewport(
   height: number,
   contentWidth: number,
   contentHeight: number,
+  yaw = 0,
+  pitch = 0,
 ): Viewport {
   const spanX = Math.max(contentWidth, 1000);
   const spanY = Math.max(contentHeight, 1000);
@@ -192,8 +194,8 @@ export function fitElevationViewport(
     ),
     width,
     height,
-    yaw: 0,
-    pitch: 0,
+    yaw,
+    pitch,
   };
 }
 

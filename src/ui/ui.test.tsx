@@ -255,8 +255,23 @@ describe('界面结构', () => {
     expect(html).toContain('elevation-mass');
     expect(html).toContain('elevation-face');
     expect(html).toContain('elevation-dimension');
+    // 体量必须自带填充色，否则 SVG 默认黑色，整张立面会变黑板
+    expect(html).toContain('fill="#f2f4f7"');
     // 平视时不再依赖三维相机，所以一定画得出东西
     expect(html).toContain('<line');
+  });
+
+  it('四张立面共用同一图幅，且墙高有标注', () => {
+    useProjectStore.getState().replaceProject(closedRoom());
+    const html = render(<FacadeCanvas />);
+    // 旋转 90 度的竖向尺寸文字就是墙高标注
+    expect(html).toContain('rotate(-90');
+    const viewBoxes = [...html.matchAll(/viewBox="([^"]+)"/g)].map(
+      (match) => match[1],
+    );
+    expect(viewBoxes).toHaveLength(4);
+    // 同样的长度在四张图上必须画成一样长，所以图幅只能有一个
+    expect(new Set(viewBoxes).size).toBe(1);
   });
 
   it('三维与等轴测视图把墙挤出体量：有顶面与竖棱', () => {
