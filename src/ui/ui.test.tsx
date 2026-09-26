@@ -11,6 +11,7 @@ import { buildFacade } from '../core/facade';
 import { buildWallBodies } from '../core/wallOffset';
 import { createOriginPoint, createProject, drawWall } from '../core/project';
 import type { Direction, OffsetSide, Project } from '../core/types';
+import { createHousePlan } from '../seed/housePlan';
 import { useProjectStore } from '../store/useProjectStore';
 import { App } from '../App';
 import { Dock } from './Dock';
@@ -520,6 +521,19 @@ describe('界面结构', () => {
     expect(html).toContain('东立面');
     expect(html).toContain('北立面');
     expect(html).toContain('总宽');
+  });
+
+  it('手绘图模型在立面上标出洞口尺寸与错位墙段', () => {
+    useProjectStore.getState().replaceProject(createHousePlan());
+    const html = render(<FacadeCanvas />);
+    // A 面两个洞口 + C 面拱窗改矩形窗，宽×高直接上墙
+    expect(html).toContain('2640×2440');
+    expect(html).toContain('3080×2440');
+    expect(html).toContain('2070×2440');
+    expect(html).toContain('离地 710');
+    // A 面 7200 与西块北墙 3550 作为可见墙段标出，转角不并成一条
+    expect(html).toContain('>7200<');
+    expect(html).toContain('>3550<');
   });
 
   it('切到出图页时不渲染操作坞，操作坞不会占屏幕', () => {
