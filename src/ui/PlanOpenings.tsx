@@ -11,6 +11,8 @@ interface PlanOpeningsProps {
   conflictIds: Set<string>;
   /** 长度数字的字高，单位毫米；跟着缩放等比放大 */
   labelHeight: number;
+  /** 接近平视时平面线会塌成一条，直接不画 */
+  showPlan?: boolean;
 }
 
 /** 沿墙推进一段距离后的世界坐标，保留原始高度 */
@@ -56,6 +58,7 @@ export function PlanOpenings({
   draftIds,
   conflictIds,
   labelHeight,
+  showPlan = true,
 }: PlanOpeningsProps) {
   const sp = (point: Vec2) => toScreen(viewport, point);
 
@@ -133,6 +136,8 @@ export function PlanOpenings({
             </g>
           );
         }
+        // 平面墙线在平视下会全部压到地平线上叠成一团，这类视图里不画
+        if (!showPlan) return null;
         const unit = DIRECTION_VECTOR[direction];
         const normalSign = wall.offsetSide === 'left' ? 1 : -1;
         const baseNormal = leftNormal(start, end);

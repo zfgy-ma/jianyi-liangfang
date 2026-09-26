@@ -26,6 +26,8 @@ export function PlanShapes({
   extrude = false,
 }: PlanShapesProps) {
   const draftIds = useMemo(() => new Set(draftWallIds), [draftWallIds]);
+  // 俯角小于 12 度时平面已经贴到地平线，只保留挤出后的墙面
+  const showPlan = viewport.pitch >= 12;
   const bodies = useMemo(() => buildWallBodies(project), [project]);
   const conflicts = useMemo(
     () => new Set(findWallConflicts(project).map((item) => item.wallId)),
@@ -94,6 +96,7 @@ export function PlanShapes({
                 })}
                 <polygon
                   className="wall-top"
+                  data-wall-id={body.wallId}
                   points={top.map((point) => `${point.x},${point.y}`).join(' ')}
                 />
                 {body.polygon.map((point, index) => {
@@ -113,7 +116,8 @@ export function PlanShapes({
             );
           })
         : null}
-      {bodies.map((body) => (
+      {showPlan
+        ? bodies.map((body) => (
         <polygon
           key={`body-${body.wallId}`}
           className={
@@ -126,8 +130,9 @@ export function PlanShapes({
               return `${screen.x},${screen.y}`;
             })
             .join(' ')}
-        />
-      ))}
+          />
+          ))
+        : null}
 
       <PlanOpenings
         project={project}
@@ -136,9 +141,10 @@ export function PlanShapes({
         draftIds={draftIds}
         conflictIds={conflicts}
         labelHeight={labelHeight}
+        showPlan={showPlan}
       />
 
-      {Object.values(project.points).map((point) => {
+      {(showPlan ? Object.values(project.points) : []).map((point) => {
         const screen = toScreen(viewport, point);
         return (
           <circle

@@ -1,4 +1,6 @@
 import type { MoveDirection, PointLike, Project, Vec2 } from '../core/types';
+import { effectiveWallHeight } from '../core/facade';
+import { buildWallBodies } from '../core/wallOffset';
 import type { ViewDirection } from '../core/facade';
 
 /**
@@ -153,7 +155,23 @@ export function fitViewport(
   const points = Object.values(project.points);
   if (points.length === 0) return base;
 
-  const projected = points.map((point) => projectPoint(base, point));
+  // 取景必须把墙顶也算进去：只算平面点的话，转到平视时纵向范围接近 0，
+  // 挤出的墙体就会跑出画面，看着又小又空。
+  const samples: PointLike[] = points.map((point) => ({
+    x: point.x,
+    y: point.y,
+    z: point.z,
+  }));
+  for (const body of buildWallBodies(project)) {
+    const wall = project.walls[body.wallId];
+    if (!wall) continue;
+    const top = effectiveWallHeight(project, wall);
+    for (const corner of body.polygon) {
+      samples.push({ x: corner.x, y: corner.y, z: top });
+    }
+  }
+
+  const projected = samples.map((point) => projectPoint(base, point));
   const xs = projected.map((point) => point.x);
   const ys = projected.map((point) => point.y);
   const minX = Math.min(...xs);

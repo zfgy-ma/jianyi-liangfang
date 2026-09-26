@@ -4,6 +4,8 @@
  */
 import { act, type ReactElement } from 'react';
 import { createRoot } from 'react-dom/client';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { buildFacade } from '../core/facade';
 import { buildWallBodies } from '../core/wallOffset';
@@ -77,6 +79,50 @@ function renderInteractive(element: ReactElement) {
       container.remove();
     },
   };
+}
+
+/** 把渲染结果存成带样式的 SVG，便于用外部工具复核画面 */
+function exportSvg(name: string, element: ReactElement): string {
+  const container = document.createElement('div');
+  document.body.append(container);
+  const root = createRoot(container);
+  act(() => {
+    root.render(element);
+  });
+  const markup = container.querySelector('svg')?.outerHTML ?? '';
+  const css = sanitizeCss(
+    readFileSync(join(process.cwd(), 'src', 'styles.css'), 'utf8'),
+  );
+  const outputDir = join(process.cwd(), '.validate');
+  mkdirSync(outputDir, { recursive: true });
+  writeFileSync(
+    join(outputDir, `${name}.svg`),
+    markup.replace('>', `><style>${css}</style>`),
+    'utf8',
+  );
+  act(() => {
+    root.unmount();
+  });
+  container.remove();
+  return markup;
+}
+
+/** 去掉外部渲染器不认识的规则，避免导出的 SVG 打不开 */
+function sanitizeCss(css: string): string {
+  const variables = new Map<string, string>();
+  for (const match of css.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) {
+    variables.set(match[1], match[2].trim());
+  }
+  let output = css;
+  for (const [name, value] of variables) {
+    output = output.split(`var(${name})`).join(value);
+  }
+  return output
+    .replace(/@media[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, '')
+    .replace(/[^{}]*-webkit-[^{}]*\{[^{}]*\}/g, '')
+    // 外部渲染器把 transparent 当黑色画，会误判成 bug
+    .replace(/transparent/g, 'none')
+    .replace(/env\([^)]*\)/g, '0px');
 }
 
 function draw(
@@ -313,6 +359,14 @@ describe('界面结构', () => {
     // 至少一个方向撑到画布的六成以上，另一个也不能塌成一条线
     expect(Math.max(spanX, spanY)).toBeGreaterThan(0.6);
     expect(Math.min(spanX, spanY)).toBeGreaterThan(0.2);
+  });
+
+  it('平面与东向视图能导出 SVG，供外部工具复核画面', () => {
+    useProjectStore.getState().replaceProject(closedRoom());
+    const east = exportSvg('view-east', <PlanCanvas preset={{ yaw: 90, pitch: 0 }} />);
+    expect(east).toContain('wall-side');
+    const plan = exportSvg('view-plan', <PlanCanvas preset={{ yaw: 0, pitch: 90 }} />);
+    expect(plan).toContain('plan-grid');
   });
 
   it('上下方向的线条也有居中长度文字', () => {
