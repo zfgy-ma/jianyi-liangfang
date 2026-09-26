@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { snapView, snapYawToCardinal, toScreen, type Viewport } from './viewport';
+import {
+  nearestStandardView,
+  nextStandardView,
+  snapView,
+  snapYawToCardinal,
+  STANDARD_VIEWS,
+  toScreen,
+  type Viewport,
+} from './viewport';
 
 const plan: Viewport = {
   centerX: 0,
@@ -34,5 +42,19 @@ describe('三维投影', () => {
     expect(snapYawToCardinal(80)).toBe(90);
     expect(snapYawToCardinal(-4)).toBe(0);
     expect(snapYawToCardinal(184)).toBe(180);
+  });
+
+  it('回到最近的标准正视图：平面图一定北朝上', () => {
+    expect(nearestStandardView(12, 78)).toBe('plan');
+    expect(nearestStandardView(95, 8)).toBe('ew');
+    expect(nearestStandardView(355, 5)).toBe('ns');
+    // 平面图固定北朝上
+    expect(STANDARD_VIEWS.plan).toEqual({ yaw: 0, pitch: 90, label: '平面图' });
+  });
+
+  it('标准视图按钮按平面图 → 东西向 → 南北向循环', () => {
+    expect(nextStandardView('plan')).toBe('ew');
+    expect(nextStandardView('ew')).toBe('ns');
+    expect(nextStandardView('ns')).toBe('plan');
   });
 });

@@ -9,6 +9,8 @@ interface PlanOpeningsProps {
   selectedWallId: string | null;
   draftIds: Set<string>;
   conflictIds: Set<string>;
+  /** 长度数字的字高，单位毫米；跟着缩放等比放大 */
+  labelHeight: number;
 }
 
 /** 沿墙推进一段距离后的世界坐标，保留原始高度 */
@@ -53,6 +55,7 @@ export function PlanOpenings({
   selectedWallId,
   draftIds,
   conflictIds,
+  labelHeight,
 }: PlanOpeningsProps) {
   const sp = (point: Vec2) => toScreen(viewport, point);
 
@@ -70,6 +73,7 @@ export function PlanOpenings({
           const verticalClass = [
             'wall-line',
             wall.isHelper ? 'wall-line-helper' : '',
+            'wall-line-vertical',
             conflictIds.has(wall.id) ? 'wall-line-conflict' : '',
             selectedWallId === wall.id ? 'wall-line-selected' : '',
             draftIds.has(wall.id) ? 'wall-line-drafted' : '',
@@ -107,17 +111,32 @@ export function PlanOpenings({
           .filter((opening) => opening.wallId === wall.id)
           .sort((left, right) => left.distance - right.distance);
 
+        // 洞口与“长度数字”都要把线断开，统一按缺口切段
+        const gapHalf =
+          ((String(Math.round(wallLength)).length * 0.62 + 0.9) * labelHeight) / 2;
+        const middle = wallLength / 2;
+        const gaps: { from: number; to: number }[] = openings.map((opening) => ({
+          from: opening.distance,
+          to: opening.distance + opening.width,
+        }));
+        if (wallLength > gapHalf * 5) {
+          gaps.push({ from: middle - gapHalf, to: middle + gapHalf });
+        }
+        gaps.sort((left, right) => left.from - right.from);
+
         const segments: { from: number; to: number }[] = [];
         let cursor = 0;
-        for (const opening of openings) {
-          if (opening.distance > cursor) segments.push({ from: cursor, to: opening.distance });
-          cursor = Math.max(cursor, opening.distance + opening.width);
+        for (const gap of gaps) {
+          if (gap.from > cursor) segments.push({ from: cursor, to: gap.from });
+          cursor = Math.max(cursor, gap.to);
         }
         if (cursor < wallLength) segments.push({ from: cursor, to: wallLength });
 
         const className = [
           'wall-line',
           wall.isHelper ? 'wall-line-helper' : '',
+          // 线条按方向分色：东西红、南北绿、上下蓝
+          direction === 'E' || direction === 'W' ? 'wall-line-ew' : 'wall-line-ns',
           conflictIds.has(wall.id) ? 'wall-line-conflict' : '',
           selectedWallId === wall.id ? 'wall-line-selected' : '',
           draftIds.has(wall.id) ? 'wall-line-drafted' : '',
@@ -145,6 +164,16 @@ export function PlanOpenings({
                 y2={sp(along(start, unit, segment.to)).y}
               />
             ))}
+            <text
+              className="wall-length"
+              x={sp(along(start, unit, middle)).x}
+              y={sp(along(start, unit, middle)).y}
+              fontSize={labelHeight * viewport.scale}
+              textAnchor="middle"
+              dominantBaseline="central"
+            >
+              {Math.round(wallLength)}
+            </text>
             {openings.map((opening) => {
               const left = along(start, unit, opening.distance);
               const right = along(start, unit, opening.distance + opening.width);

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { saveProject } from './io/storage';
+import { listProjects, saveProject } from './io/storage';
 import { useProjectStore } from './store/useProjectStore';
 import { FileMenu } from './ui/FileMenu';
 import { Dock } from './ui/Dock';
@@ -9,7 +9,6 @@ import { OpeningPanel } from './ui/OpeningPanel';
 import { PlanCanvas } from './ui/PlanCanvas';
 import { ProjectPanel } from './ui/ProjectPanel';
 import { RoomPanel } from './ui/RoomPanel';
-import { Sheet } from './ui/Sheet';
 import { StatusBar } from './ui/StatusBar';
 import { TabBar } from './ui/TabBar';
 import { useIsDesktop } from './ui/useIsDesktop';
@@ -22,8 +21,28 @@ export function App() {
   const planLocked = useProjectStore((state) => state.planLocked);
   const isDesktop = useIsDesktop();
   useKeyboardInput(isDesktop);
+  const replaceProject = useProjectStore((state) => state.replaceProject);
   const [sideWidth, setSideWidth] = useState(380);
   const draggingSplitter = useRef(false);
+  const restoredRef = useRef(false);
+
+  // 打开网页时自动载入最近编辑的工程；只有当前还是空白工程才会覆盖
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+    void (async () => {
+      try {
+        const projects = await listProjects();
+        const latest = projects[0];
+        if (!latest) return;
+        const current = useProjectStore.getState().history.present;
+        if (Object.keys(current.walls).length > 0) return;
+        replaceProject(latest);
+      } catch {
+        // 本地存储不可用时保持空白工程，不影响画图
+      }
+    })();
+  }, [replaceProject]);
 
   // 桌面端左右分栏：拖动中间的分隔条自由调整右侧宽度
   useEffect(() => {
@@ -65,7 +84,7 @@ export function App() {
         {tab === 'plan' ? (
           <PlanCanvas preset={PLAN_VIEW} lockRotation={planLocked} showLock />
         ) : null}
-        {tab === 'three' ? <PlanCanvas preset={THREE_VIEW} snapYaw /> : null}
+        {tab === 'three' ? <PlanCanvas preset={THREE_VIEW} lockYaw /> : null}
         {tab === 'iso' ? <PlanCanvas preset={ISO_VIEW} /> : null}
         {tab === 'facade' ? <FacadeCanvas /> : null}
         {isDesktop ? (
@@ -86,9 +105,7 @@ export function App() {
               <OpeningPanel />
             </aside>
           </>
-        ) : (
-          <Sheet />
-        )}
+        ) : null}
       </main>
       <StatusBar />
       {isDesktop ? null : <Dock />}

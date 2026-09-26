@@ -6,14 +6,18 @@ import { AxisGizmo } from './AxisGizmo';
 import { resolveTap, type PendingTap } from './tap';
 import {
   fitViewport,
+  nearestStandardView,
+  nextStandardView,
   screenToView,
+  STANDARD_VIEWS,
   snapYawToCardinal,
   snapView,
   type Viewport,
 } from './viewport';
 
-const MIN_SCALE = 0.002;
-const MAX_SCALE = 2;
+/** 缩放上下限：放大到 1mm 能占几十像素，缩到能看整栋房子 */
+const MIN_SCALE = 0.0002;
+const MAX_SCALE = 60;
 
 function clampScale(scale: number): number {
   return Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale));
@@ -22,6 +26,7 @@ function clampScale(scale: number): number {
 export function PlanCanvas({
   preset,
   lockRotation = false,
+  lockYaw = false,
   snapYaw = false,
   showLock = false,
 }: {
@@ -29,6 +34,8 @@ export function PlanCanvas({
   preset: { yaw: number; pitch: number };
   /** 锁定视角：不能旋转，只能平移缩放 */
   lockRotation?: boolean;
+  /** 只允许调俯仰，水平方向锁死 */
+  lockYaw?: boolean;
   /** 水平方向锁在东西南北四个正方向 */
   snapYaw?: boolean;
   /** 在画布右下角显示平面锁定按钮 */
@@ -49,6 +56,8 @@ export function PlanCanvas({
   const containerRef = useRef<HTMLDivElement>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinchDistance = useRef<number | null>(null);
+  /** 双指中点，用来把双指拖动解释成旋转视角 */
+  const pinchMid = useRef<{ x: number; y: number } | null>(null);
   /** 正在旋转视角：中键拖动，或手机上的旋转模式 */
   const rotating = useRef(false);
   /** 记录按下时命中的图元，抬起时若没有拖动就当作点选 */
@@ -107,6 +116,10 @@ export function PlanCanvas({
     if (pointers.current.size === 2) {
       const [first, second] = [...pointers.current.values()];
       pinchDistance.current = Math.hypot(first.x - second.x, first.y - second.y);
+      pinchMid.current = {
+        x: (first.x + second.x) / 2,
+        y: (first.y + second.y) / 2,
+      };
     }
   };
 
@@ -121,8 +134,9 @@ export function PlanCanvas({
       const pitchStep = (next.y - previous.y) * 0.4;
       setViewport((current) => ({
         ...current,
-        yaw: current.yaw + yawStep,
-        pitch: Math.max(0, Math.min(90, current.pitch - pitchStep)),
+        yaw: lockYaw ? current.yaw : current.yaw + yawStep,
+        // 往下拖是抬高视线看房顶，方向与手感一致
+        pitch: Math.max(0, Math.min(90, current.pitch + pitchStep)),
       }));
       return;
     }
@@ -141,7 +155,24 @@ export function PlanCanvas({
       const distance = Math.hypot(first.x - second.x, first.y - second.y);
       const factor = distance / pinchDistance.current;
       pinchDistance.current = distance;
-      setViewport((current) => ({ ...current, scale: clampScale(current.scale * factor) }));
+      const midX = (first.x + second.x) / 2;
+      const midY = (first.y + second.y) / 2;
+      const previousMid = pinchMid.current ?? { x: midX, y: midY };
+      pinchMid.current = { x: midX, y: midY };
+      setViewport((current) => {
+        const scale = clampScale(current.scale * factor);
+        // 锁定视角时双指只负责缩放；否则双指拖动顺带旋转
+        if (lockRotation) return { ...current, scale };
+        return {
+          ...current,
+          scale,
+          yaw: lockYaw ? current.yaw : current.yaw + (midX - previousMid.x) * 0.4,
+          pitch: Math.max(
+            0,
+            Math.min(90, current.pitch + (midY - previousMid.y) * 0.4),
+          ),
+        };
+      });
     }
   };
 
@@ -176,7 +207,10 @@ export function PlanCanvas({
     }
     pendingTap.current = null;
     pointers.current.delete(event.pointerId);
-    if (pointers.current.size < 2) pinchDistance.current = null;
+    if (pointers.current.size < 2) {
+      pinchDistance.current = null;
+      pinchMid.current = null;
+    }
   };
 
   const handleWheel = (event: React.WheelEvent<SVGSVGElement>) => {
@@ -193,6 +227,24 @@ export function PlanCanvas({
         centerY: view.y - (anchor.y - current.height / 2) / scale,
       };
     });
+  };
+
+  const currentViewKey = nearestStandardView(viewport.yaw, viewport.pitch);
+
+  /** 快捷视图按钮：平面图 → 东西向 → 南北向循环 */
+  const cycleStandardView = () => {
+    const next = nextStandardView(currentViewKey);
+    const target = STANDARD_VIEWS[next];
+    setViewport(fitViewport(project, size.width, size.height, target.yaw, target.pitch));
+  };
+
+  /** 点锁定：先回到离当前最近的平面正视图，再锁住旋转 */
+  const handleLockToggle = () => {
+    const nextLocked = !planLocked;
+    togglePlanLock();
+    if (!nextLocked) return;
+    const target = STANDARD_VIEWS[nearestStandardView(viewport.yaw, viewport.pitch)];
+    setViewport(fitViewport(project, size.width, size.height, target.yaw, target.pitch));
   };
 
   const scaleLabel =
@@ -220,6 +272,9 @@ export function PlanCanvas({
         />
       </svg>
       <div className="canvas-tools">
+        <button type="button" className="tool-button" onClick={cycleStandardView}>
+          切到{STANDARD_VIEWS[nextStandardView(currentViewKey)].label}
+        </button>
         <button type="button" className="tool-button" onClick={fit}>
           适配视图
         </button>
@@ -236,7 +291,7 @@ export function PlanCanvas({
             aria-label="锁定平面视角"
             aria-pressed={planLocked}
             data-lock-state={planLocked ? 'locked' : 'unlocked'}
-            onClick={togglePlanLock}
+            onClick={handleLockToggle}
           >
             <svg
               viewBox="0 0 24 24"

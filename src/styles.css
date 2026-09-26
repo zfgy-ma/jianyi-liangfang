@@ -1029,6 +1029,67 @@ body {
   height: 44px;
 }
 
+/* 线条按方向分色：东西红、南北绿、上下蓝；特殊状态优先级更高 */
+.wall-line.wall-line-ew,
+.wall-line.wall-line-vertical,
+.wall-line.wall-line-ns {
+  stroke-width: 2;
+}
+
+.wall-line.wall-line-ew {
+  stroke: #c9453a;
+}
+
+.wall-line.wall-line-ns {
+  stroke: #3c8b4a;
+}
+
+.wall-line.wall-line-vertical {
+  stroke: #2f6fd0;
+}
+
+.wall-line.wall-line-helper {
+  stroke: var(--ink-quiet);
+  stroke-width: 1;
+}
+
+.wall-line.wall-line-conflict {
+  stroke: var(--danger);
+}
+
+.wall-line.wall-line-selected {
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+
+.wall-line.wall-line-drafted {
+  stroke: var(--warn);
+}
+
+.wall-length {
+  fill: var(--ink);
+  font-weight: 600;
+  pointer-events: none;
+}
+
+/* 手机端底部面板区：替换键盘，不盖住画布 */
+.dock-panel {
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.prop-input {
+  width: 112px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 14px;
+  text-align: right;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
 /* 画布右下角的锁定按钮：图标按钮，不占操作坞宽度 */
 .icon-button {
   display: inline-flex;

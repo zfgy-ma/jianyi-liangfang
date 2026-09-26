@@ -17,8 +17,8 @@ import type { MoveDirection, OpeningKind, Project, WallKind } from '../core/type
 
 export type InputMode = 'wall' | 'helper' | 'select';
 export type TabKey = 'plan' | 'three' | 'iso' | 'facade';
-/** 底部浮层面板：手机上用完即收，避免页面越滚越长 */
-export type SheetKey = 'none' | 'project' | 'rooms' | 'wall' | 'opening';
+/** 底部面板区当前显示的卡片：默认是输入键盘，切到区域/墙体/洞口时替换掉输入区 */
+export type DockPanelKey = 'input' | 'rooms' | 'wall' | 'opening';
 /** 开局选角只决定录入习惯，不影响坐标系原点 */
 export type CornerKey = 'SE' | 'NE' | 'SW' | 'NW';
 
@@ -32,7 +32,7 @@ export interface ProjectState {
   tab: TabKey;
   /** 锁定平面图：视角固定正俯视，不能旋转 */
   planLocked: boolean;
-  activeSheet: SheetKey;
+  dockPanel: DockPanelKey;
   startCorner: CornerKey;
   /** 圈定区域时按顺序收集的墙 id */
   roomDraft: string[];
@@ -45,7 +45,7 @@ export interface ProjectState {
   rotateMode: boolean;
   setTab: (tab: TabKey) => void;
   togglePlanLock: () => void;
-  setActiveSheet: (sheet: SheetKey) => void;
+  setDockPanel: (panel: DockPanelKey) => void;
   setMode: (mode: InputMode) => void;
   setStartCorner: (corner: CornerKey) => void;
   newProject: (name: string, corner: CornerKey) => void;
@@ -118,7 +118,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   digits: '',
   tab: 'plan',
   planLocked: true,
-  activeSheet: 'none',
+  dockPanel: 'input',
   startCorner: 'SE',
   roomDraft: [],
   roomMessage: '',
@@ -129,7 +129,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   setTab: (tab) => set({ tab }),
   togglePlanLock: () => set((state) => ({ planLocked: !state.planLocked })),
-  setActiveSheet: (sheet) => set({ activeSheet: sheet }),
+  setDockPanel: (panel) => set({ dockPanel: panel }),
   setMode: (mode) => set({ mode, selectedWallId: null, direction: null, digits: '' }),
   setStartCorner: (corner) => set({ startCorner: corner }),
   newProject: (name, corner) => set({ ...freshProject(name), startCorner: corner }),

@@ -19,10 +19,41 @@ export interface Viewport {
 }
 
 export const PLAN_VIEW = { yaw: 0, pitch: 90 };
-/** 三维视图：默认斜俯视，但水平方向锁在东西南北 */
-export const THREE_VIEW = { yaw: 0, pitch: 45 };
+/** 三维视图：默认 45 度俯视的转角视角，水平方向锁死，只能调俯仰 */
+export const THREE_VIEW = { yaw: 45, pitch: 45 };
 /** 等轴测：方位 45°、俯仰 35.264°，标准轴测角度 */
 export const ISO_VIEW = { yaw: 45, pitch: 35.264 };
+
+export type StandardViewKey = 'plan' | 'ew' | 'ns';
+
+/** 三个标准正视图：平面图（北朝上）、东西向、南北向 */
+export const STANDARD_VIEWS: Record<
+  StandardViewKey,
+  { yaw: number; pitch: number; label: string }
+> = {
+  plan: { yaw: 0, pitch: 90, label: '平面图' },
+  ew: { yaw: 90, pitch: 0, label: '东西向' },
+  ns: { yaw: 0, pitch: 0, label: '南北向' },
+};
+
+/** 找出离当前视角最近的标准正视图，平面图一律回正到北朝上 */
+export function nearestStandardView(yaw: number, pitch: number): StandardViewKey {
+  if (Math.abs(90 - pitch) <= 45) return 'plan';
+  const normalized = ((yaw % 360) + 360) % 360;
+  const toEastWest = Math.min(
+    Math.abs(normalized - 90),
+    Math.abs(normalized - 270),
+  );
+  const toNorthSouth = Math.min(normalized, 360 - normalized);
+  return toEastWest < toNorthSouth ? 'ew' : 'ns';
+}
+
+/** 循环切换标准正视图：平面图 → 东西向 → 南北向 → 平面图 */
+export function nextStandardView(current: StandardViewKey): StandardViewKey {
+  if (current === 'plan') return 'ew';
+  if (current === 'ew') return 'ns';
+  return 'plan';
+}
 
 /** 世界坐标 → 视图平面坐标（毫米） */
 export function projectPoint(viewport: Viewport, point: PointLike): Vec2 {

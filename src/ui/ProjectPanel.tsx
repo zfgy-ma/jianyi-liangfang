@@ -1,15 +1,35 @@
+import { useEffect, useState } from 'react';
 import { useProjectStore } from '../store/useProjectStore';
 
 export function ProjectPanel() {
   const project = useProjectStore((state) => state.history.present);
-  const digits = useProjectStore((state) => state.digits);
   const updateProjectMeta = useProjectStore((state) => state.updateProjectMeta);
-  const applyOuterThicknessToAll = useProjectStore(
-    (state) => state.applyOuterThicknessToAll,
+  const [wallHeight, setWallHeight] = useState(String(project.wallHeight));
+  const [outerThickness, setOuterThickness] = useState(
+    String(project.outerThickness),
   );
 
-  const pending = Number(digits);
-  const hasPending = digits !== '' && Number.isFinite(pending) && pending > 0;
+  useEffect(() => {
+    setWallHeight(String(project.wallHeight));
+  }, [project.wallHeight]);
+
+  useEffect(() => {
+    setOuterThickness(String(project.outerThickness));
+  }, [project.outerThickness]);
+
+  const commitWallHeight = () => {
+    const value = Number(wallHeight);
+    if (Number.isFinite(value) && value > 0) {
+      updateProjectMeta({ wallHeight: Math.round(value) });
+    }
+  };
+
+  const commitOuterThickness = () => {
+    const value = Number(outerThickness);
+    if (Number.isFinite(value) && value > 0) {
+      updateProjectMeta({ outerThickness: Math.round(value) });
+    }
+  };
 
   return (
     <section className="panel">
@@ -26,45 +46,38 @@ export function ProjectPanel() {
         />
       </label>
 
-      <dl className="prop-list">
-        <div className="prop-row">
-          <dt>统一层高</dt>
-          <dd>{project.wallHeight} mm</dd>
-        </div>
-        <div className="prop-row">
-          <dt>外墙厚度</dt>
-          <dd>{project.outerThickness} mm</dd>
-        </div>
-      </dl>
+      <label className="prop-row prop-row-inline">
+        <span className="prop-label">统一层高</span>
+        <input
+          className="prop-input"
+          type="number"
+          inputMode="numeric"
+          value={wallHeight}
+          onChange={(event) => setWallHeight(event.target.value)}
+          onBlur={commitWallHeight}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') commitWallHeight();
+          }}
+        />
+      </label>
 
-      <div className="prop-actions">
-        <button
-          type="button"
-          className="tool-button"
-          disabled={!hasPending}
-          onClick={() => updateProjectMeta({ wallHeight: pending })}
-        >
-          用键盘数值设为层高
-        </button>
-        <button
-          type="button"
-          className="tool-button"
-          disabled={!hasPending}
-          onClick={() => updateProjectMeta({ outerThickness: pending })}
-        >
-          用键盘数值设为外墙厚
-        </button>
-        <button
-          type="button"
-          className="tool-button"
-          onClick={applyOuterThicknessToAll}
-        >
-          把外墙厚应用到所有外墙
-        </button>
-      </div>
+      <label className="prop-row prop-row-inline">
+        <span className="prop-label">外墙厚度</span>
+        <input
+          className="prop-input"
+          type="number"
+          inputMode="numeric"
+          value={outerThickness}
+          onChange={(event) => setOuterThickness(event.target.value)}
+          onBlur={commitOuterThickness}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') commitOuterThickness();
+          }}
+        />
+      </label>
 
       <p className="hint hint-quiet">
-        层高决定立面高度；单面墙可以在墙体属性里单独覆盖。
+        层高决定立面高度；外墙厚度影响新画的外墙，单面墙可在墙体属性里单独改。
       </p>
     </section>
   );

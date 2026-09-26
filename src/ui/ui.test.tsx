@@ -50,6 +50,31 @@ function render(element: ReactElement): string {
   return html;
 }
 
+/** 渲染并保留容器，便于模拟点击 */
+function renderInteractive(element: ReactElement) {
+  const container = document.createElement('div');
+  document.body.append(container);
+  const root = createRoot(container);
+  act(() => {
+    root.render(element);
+  });
+  return {
+    click: (selector: string) => {
+      const node = container.querySelector(selector);
+      if (!node) throw new Error(`找不到元素：${selector}`);
+      act(() => {
+        node.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+    },
+    unmount: () => {
+      act(() => {
+        root.unmount();
+      });
+      container.remove();
+    },
+  };
+}
+
 function draw(
   project: Project,
   fromPointId: string,
@@ -77,12 +102,40 @@ describe('界面结构', () => {
     const html = render(<Dock />);
     expect(html).toContain('data-direction="U"');
     expect(html).toContain('data-direction="D"');
-    expect(html).toContain('视角');
     expect(html).toContain('区域');
     // 上、下两键在十字下方，只占高度
     expect(html).toContain('direction-vertical');
     // 锁定按钮已经移到画布右下角，不再占操作坞
     expect(html).not.toContain('平面已锁');
+    // 视角按钮已删除，"工程"与顶部菜单重复，也不再出现在操作坞里
+    expect(html).not.toContain('>视角<');
+    expect(html).not.toContain('>工程<');
+  });
+
+  it('点“区域”把键盘区换成区域卡片，画布不被遮住', () => {
+    useProjectStore.getState().setTab('plan');
+    useProjectStore.getState().setDockPanel('input');
+    const view = renderInteractive(<Dock />);
+    view.click('button[data-panel="rooms"]');
+    expect(useProjectStore.getState().dockPanel).toBe('rooms');
+    view.unmount();
+  });
+
+  it('撤销与重做按钮真的在改数据', () => {
+    useProjectStore.getState().newProject('撤销测试', 'SE');
+    const store = useProjectStore.getState();
+    store.pressDirection('N');
+    store.pressDigit('3000');
+    store.confirmDraw();
+    expect(Object.keys(useProjectStore.getState().history.present.walls)).toHaveLength(1);
+
+    useProjectStore.getState().setTab('plan');
+    const view = renderInteractive(<Dock />);
+    view.click('button[data-action="undo"]');
+    expect(Object.keys(useProjectStore.getState().history.present.walls)).toHaveLength(0);
+    view.click('button[data-action="redo"]');
+    expect(Object.keys(useProjectStore.getState().history.present.walls)).toHaveLength(1);
+    view.unmount();
   });
 
   it('标签页是平面、三维、等轴测、四向立面', () => {
@@ -137,7 +190,7 @@ describe('界面结构', () => {
     expect(html).toContain('facade-length');
   });
 
-  it('方位指示器只画东、南、上三根彩色轴', () => {
+  it('方位指示器只画东、北、上三根彩色轴', () => {
     const html = render(
       <AxisGizmo
         viewport={{
@@ -152,10 +205,10 @@ describe('界面结构', () => {
       />,
     );
     expect(html).toContain('东');
-    expect(html).toContain('南');
+    expect(html).toContain('北');
     expect(html).toContain('上');
+    expect(html).not.toContain('南');
     expect(html).not.toContain('西');
-    expect(html).not.toContain('北');
     expect(html).not.toContain('下');
   });
 
@@ -174,7 +227,7 @@ describe('界面结构', () => {
       />,
     );
     expect(html).toContain('东');
-    expect(html).toContain('南');
+    expect(html).toContain('北');
     // 正俯视时“上”正对观察者，投影成一个点，直接不画
     expect(html).not.toContain('上');
   });

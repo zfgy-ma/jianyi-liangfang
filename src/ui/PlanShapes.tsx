@@ -39,6 +39,10 @@ export function PlanShapes({
     };
   });
 
+  // 长度数字的字高按户型尺寸给，缩放时等比变化，和 CAD 一致
+  const span = walls.reduce((current, item) => Math.max(current, item.length), 0);
+  const labelHeight = Math.max(120, Math.round(span * 0.04));
+
   return (
     <g>
       {bodies.map((body) => (
@@ -63,19 +67,8 @@ export function PlanShapes({
         selectedWallId={selectedWallId}
         draftIds={draftIds}
         conflictIds={conflicts}
+        labelHeight={labelHeight}
       />
-
-      {walls.map(({ wall, start, end, length }) => (
-        <text
-          key={`length-${wall.id}`}
-          className="wall-length"
-          x={(start.x + end.x) / 2}
-          y={(start.y + end.y) / 2 - 6}
-          textAnchor="middle"
-        >
-          {length}
-        </text>
-      ))}
 
       {Object.values(project.points).map((point) => {
         const screen = toScreen(viewport, point);

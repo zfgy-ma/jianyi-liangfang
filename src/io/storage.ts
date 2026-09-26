@@ -4,6 +4,11 @@ const DB_NAME = 'jianyi-liangfang';
 const STORE_NAME = 'projects';
 const DB_VERSION = 1;
 
+/** 浏览器隐私模式等场景下没有 indexedDB，这时自动保存降级为静默跳过 */
+function hasIndexedDb(): boolean {
+  return typeof indexedDB !== 'undefined';
+}
+
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -34,10 +39,12 @@ async function runRequest<T>(
 
 /** 自动保存：每个工程一条记录 */
 export async function saveProject(project: Project): Promise<void> {
+  if (!hasIndexedDb()) return;
   await runRequest('readwrite', (store) => store.put(project));
 }
 
 export async function loadProject(id: string): Promise<Project | null> {
+  if (!hasIndexedDb()) return null;
   const project = await runRequest<Project | undefined>('readonly', (store) =>
     store.get(id),
   );
@@ -45,6 +52,7 @@ export async function loadProject(id: string): Promise<Project | null> {
 }
 
 export async function listProjects(): Promise<Project[]> {
+  if (!hasIndexedDb()) return [];
   const projects = await runRequest<Project[]>('readonly', (store) =>
     store.getAll(),
   );
@@ -52,5 +60,6 @@ export async function listProjects(): Promise<Project[]> {
 }
 
 export async function deleteProject(id: string): Promise<void> {
+  if (!hasIndexedDb()) return;
   await runRequest('readwrite', (store) => store.delete(id));
 }

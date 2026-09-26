@@ -8,7 +8,7 @@ const HIDDEN_LENGTH = 0.08;
 /** 三根轴三个颜色：东红、南绿、上蓝 */
 const AXES = [
   { key: 'E', label: '东', color: '#c9453a', x: 1, y: 0, z: 0 },
-  { key: 'S', label: '南', color: '#3c8b4a', x: 0, y: -1, z: 0 },
+  { key: 'N', label: '北', color: '#3c8b4a', x: 0, y: 1, z: 0 },
   { key: 'U', label: '上', color: '#2f6fd0', x: 0, y: 0, z: 1 },
 ];
 
