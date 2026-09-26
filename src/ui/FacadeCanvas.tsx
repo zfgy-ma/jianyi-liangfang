@@ -1,4 +1,9 @@
-import { buildFacade, type FacadeView, type ViewDirection } from '../core/facade';
+import {
+  buildFacade,
+  visibleFacadeFaces,
+  type FacadeView,
+  type ViewDirection,
+} from '../core/facade';
 import { useProjectStore } from '../store/useProjectStore';
 
 function FacadePreview({
@@ -69,44 +74,45 @@ function FacadePreview({
               ))}
           </g>
         ))}
-        {view.walls.map((wall) => (
-          <g key={`dimension-${wall.wallId}-${wall.left}`}>
+        {/* 尺寸只标真正看得见的那段墙，A 面会标 7200 而不是并集后的总宽 */}
+        {visibleFacadeFaces(view.faces).map((face) => (
+          <g key={`dimension-${face.wallId}`}>
             <line
               className="facade-dimension"
-              x1={wall.left}
+              x1={face.left}
               y1={dimensionY - labelSize * 0.35}
-              x2={wall.left}
+              x2={face.left}
               y2={dimensionY + labelSize * 0.35}
             />
             <line
               className="facade-dimension"
-              x1={wall.left + wall.width}
+              x1={face.left + face.width}
               y1={dimensionY - labelSize * 0.35}
-              x2={wall.left + wall.width}
+              x2={face.left + face.width}
               y2={dimensionY + labelSize * 0.35}
             />
             <line
               className="facade-dimension"
-              x1={wall.left}
+              x1={face.left}
               y1={dimensionY}
-              x2={wall.left + wall.width / 2 - labelSize * 1.3}
+              x2={face.left + face.width / 2 - labelSize * 1.3}
               y2={dimensionY}
             />
             <line
               className="facade-dimension"
-              x1={wall.left + wall.width / 2 + labelSize * 1.3}
+              x1={face.left + face.width / 2 + labelSize * 1.3}
               y1={dimensionY}
-              x2={wall.left + wall.width}
+              x2={face.left + face.width}
               y2={dimensionY}
             />
             <text
               className="facade-length"
-              x={wall.left + wall.width / 2}
+              x={face.left + face.width / 2}
               y={dimensionY + labelSize * 0.38}
               fontSize={labelSize}
               textAnchor="middle"
             >
-              {wall.width}
+              {face.width}
             </text>
           </g>
         ))}

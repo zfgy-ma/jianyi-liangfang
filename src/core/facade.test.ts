@@ -5,6 +5,7 @@ import {
   connectedRun,
   effectiveWallHeight,
   facingDirection,
+  visibleFacadeFaces,
 } from './facade';
 import { createOriginPoint, createProject, drawWall } from './project';
 import { splitWallAt } from './split';
@@ -152,6 +153,10 @@ describe('四向立面', () => {
     expect(northView.walls.map((wall) => [wall.left, wall.width, wall.height])).toEqual([
       [0, 7200, 2800],
       [7200, 3550, 3400],
+    ]);
+    // 南墙被前两段墙完全盖住，只给看得见的两段标尺寸
+    expect(visibleFacadeFaces(northView.faces).map((face) => face.width)).toEqual([
+      7200, 3550,
     ]);
   });
 

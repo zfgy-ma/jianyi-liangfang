@@ -123,6 +123,40 @@ export function buildSilhouette(rects: FacadeWallRect[]): FacadeWallRect[] {
   return strips;
 }
 
+/**
+ * 立面上真正看得见的墙面：没有被更近的墙在投影上完全盖住。
+ * 用来给立面标尺寸，避免把被挡住的后墙长度也标出来。
+ */
+export function visibleFacadeFaces(faces: FacadeFace[]): FacadeFace[] {
+  return faces.filter((face) => {
+    const left = face.left;
+    const right = face.left + face.width;
+    const top = face.bottom + face.height;
+    // 更近、且高度盖住这面墙顶的墙面才有资格遮挡
+    const covers = faces.filter(
+      (other) =>
+        other !== face &&
+        other.depth < face.depth &&
+        other.bottom <= face.bottom + 1e-6 &&
+        other.bottom + other.height >= top - 1e-6,
+    );
+    // 这些墙的投影区间并集是否把整段盖满
+    let cursor = left;
+    let moved = true;
+    while (moved && cursor < right - 1e-6) {
+      moved = false;
+      for (const other of covers) {
+        const otherRight = other.left + other.width;
+        if (other.left <= cursor + 1e-6 && otherRight > cursor + 1e-6) {
+          cursor = Math.max(cursor, otherRight);
+          moved = true;
+        }
+      }
+    }
+    return cursor < right - 1e-6;
+  });
+}
+
 /** 墙体外侧法线：指向室外，也就是墙厚偏移的方向 */
 export function outwardNormal(project: Project, wall: Wall): Vec2 | null {
   const start = project.points[wall.startPointId];
