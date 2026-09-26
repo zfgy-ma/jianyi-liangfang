@@ -4,6 +4,7 @@ import { PlanShapes } from './PlanShapes';
 import { PlanGrid } from './PlanGrid';
 import { AxisGizmo } from './AxisGizmo';
 import { resolveTap, type PendingTap } from './tap';
+import { rotateCamera } from './rotation';
 import {
   fitViewport,
   nearestStandardView,
@@ -141,14 +142,11 @@ export function PlanCanvas({
     pointers.current.set(event.pointerId, next);
 
     if (rotating.current) {
-      const yawStep = (next.x - previous.x) * 0.4;
-      const pitchStep = (next.y - previous.y) * 0.4;
       setViewport((current) => ({
         ...current,
-        // 左右方向与手上的拖动一致
-        yaw: lockYaw ? current.yaw : current.yaw - yawStep,
-        // 往下拖是抬高视线看房顶，方向与手感一致
-        pitch: Math.max(0, Math.min(90, current.pitch + pitchStep)),
+        ...rotateCamera(current, next.x - previous.x, next.y - previous.y, {
+          lockYaw,
+        }),
       }));
       return;
     }
@@ -178,11 +176,9 @@ export function PlanCanvas({
         return {
           ...current,
           scale,
-          yaw: lockYaw ? current.yaw : current.yaw - (midX - previousMid.x) * 0.4,
-          pitch: Math.max(
-            0,
-            Math.min(90, current.pitch + (midY - previousMid.y) * 0.4),
-          ),
+          ...rotateCamera(current, midX - previousMid.x, midY - previousMid.y, {
+            lockYaw,
+          }),
         };
       });
     }

@@ -127,6 +127,7 @@ export function PlanShapes({
         draftIds={draftIds}
         conflictIds={conflicts}
         labelHeight={labelHeight}
+        onlyWallId={onlyWallId}
       />
 
       {Object.values(project.points).map((point) => {

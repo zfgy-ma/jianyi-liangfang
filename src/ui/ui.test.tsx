@@ -15,6 +15,7 @@ import { AxisGizmo } from './AxisGizmo';
 import { FacadeCanvas } from './FacadeCanvas';
 import { PlanCanvas } from './PlanCanvas';
 import { PlanGrid } from './PlanGrid';
+import { PlanShapes } from './PlanShapes';
 import { ProjectPanel } from './ProjectPanel';
 import { TabBar } from './TabBar';
 
@@ -228,6 +229,90 @@ describe('界面结构', () => {
     expect(html).not.toContain('南');
     expect(html).not.toContain('西');
     expect(html).not.toContain('下');
+    // 线条本身也要带颜色，不能只有箭头有颜色
+    expect(html).toContain('stroke="#c9453a"');
+    expect(html).toContain('stroke="#3c8b4a"');
+    expect(html).toContain('stroke="#2f6fd0"');
+  });
+
+  it('立面视角只画选中的那一面墙', () => {
+    const project = closedRoom();
+    const wallIds = Object.keys(project.walls);
+    const viewport = {
+      centerX: 0,
+      centerY: 0,
+      scale: 0.05,
+      width: 800,
+      height: 600,
+      yaw: 90,
+      pitch: 0,
+    };
+    const html = render(
+      <PlanShapes
+        project={project}
+        viewport={viewport}
+        activePointId={null}
+        selectedWallId={wallIds[0]}
+        draftWallIds={[]}
+        onlyWallId={wallIds[0]}
+      />,
+    );
+    expect(html).toContain(`data-wall-id="${wallIds[0]}"`);
+    expect(html).not.toContain(`data-wall-id="${wallIds[1]}"`);
+  });
+
+  it('三维与等轴测视图把墙挤出体量：有顶面与竖棱', () => {
+    const project = closedRoom();
+    const viewport = {
+      centerX: 0,
+      centerY: 0,
+      scale: 0.05,
+      width: 800,
+      height: 600,
+      yaw: 45,
+      pitch: 35.264,
+    };
+    const html = render(
+      <PlanShapes
+        project={project}
+        viewport={viewport}
+        activePointId={null}
+        selectedWallId={null}
+        draftWallIds={[]}
+        extrude
+      />,
+    );
+    expect(html).toContain('wall-top');
+    expect(html).toContain('wall-edge');
+    expect(html).toContain('wall-solid-ew');
+  });
+
+  it('上下方向的线条也有居中长度文字', () => {
+    const origin = createOriginPoint(createProject('竖线测试'), 0, 0);
+    const up = drawWall(origin.project, {
+      fromPointId: origin.pointId,
+      direction: 'U',
+      length: 4200,
+    });
+    const html = render(
+      <PlanShapes
+        project={up.project}
+        viewport={{
+          centerX: 0,
+          centerY: 0,
+          scale: 0.05,
+          width: 800,
+          height: 600,
+          yaw: 45,
+          pitch: 35.264,
+        }}
+        activePointId={null}
+        selectedWallId={null}
+        draftWallIds={[]}
+      />,
+    );
+    expect(html).toContain('wall-length-ud');
+    expect(html).toContain('4200');
   });
 
   it('平面视角下不显示上下指示', () => {
