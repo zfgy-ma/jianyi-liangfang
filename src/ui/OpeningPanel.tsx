@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { elevationAxis } from '../core/elevation';
-import type { OpeningKind } from '../core/types';
+import type { Opening, OpeningKind } from '../core/types';
 import { useProjectStore } from '../store/useProjectStore';
 
 const FIELDS = ['宽度', '高度', '离地高度', '距左端'] as const;
@@ -15,11 +15,14 @@ export function OpeningPanel() {
   const digits = useProjectStore((state) => state.digits);
   const openingMessage = useProjectStore((state) => state.openingMessage);
   const addOpeningAt = useProjectStore((state) => state.addOpeningAt);
+  const changeOpening = useProjectStore((state) => state.changeOpening);
   const deleteOpening = useProjectStore((state) => state.deleteOpening);
 
   const [kind, setKind] = useState<OpeningKind>('window');
   const [values, setValues] = useState<number[]>(PRESETS.window);
   const [step, setStep] = useState(0);
+  /** 正在改哪个洞口；为空表示当前是新建模式 */
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const wall = selectedWallId ? project.walls[selectedWallId] : null;
   if (!wall) {
@@ -52,6 +55,19 @@ export function OpeningPanel() {
       current.map((value, index) => (index === step ? pending : value)),
     );
     setStep((current) => Math.min(current + 1, FIELDS.length - 1));
+  };
+
+  /** 把已有洞口的值装回四个字段格，点保存就是改它，不再新增 */
+  const startEdit = (opening: Opening) => {
+    setKind(opening.kind);
+    setValues([
+      opening.width,
+      opening.height,
+      opening.sillHeight,
+      axis ? axis.toAxisX(opening.distance) : opening.distance,
+    ]);
+    setEditingId(opening.id);
+    setStep(0);
   };
 
   return (
@@ -98,6 +114,7 @@ export function OpeningPanel() {
       <button
         type="button"
         className="tool-button"
+        data-fill-field
         disabled={!canFill}
         onClick={fillCurrentField}
       >
@@ -107,19 +124,39 @@ export function OpeningPanel() {
       <button
         type="button"
         className="confirm-key"
-        onClick={() =>
-          addOpeningAt({
-            wallId: wall.id,
-            kind,
+        data-confirm-opening
+        onClick={() => {
+          const patch = {
             width: values[0],
             height: values[1],
             sillHeight: values[2],
             distance: axis ? axis.toWallDistance(values[3]) : values[3],
-          })
-        }
+          };
+          if (editingId) {
+            // 有正在编辑的洞口就改它，绝不重复新增
+            changeOpening(editingId, patch);
+            setEditingId(null);
+            setStep(0);
+            return;
+          }
+          addOpeningAt({ wallId: wall.id, kind, ...patch });
+        }}
       >
-        添加这个洞口
+        {editingId ? `保存 ${editingId} 的修改` : '添加这个洞口'}
       </button>
+
+      {editingId ? (
+        <button
+          type="button"
+          className="tool-button"
+          onClick={() => {
+            setEditingId(null);
+            setStep(0);
+          }}
+        >
+          取消编辑，回到新增
+        </button>
+      ) : null}
 
       {openingMessage ? <p className="hint">{openingMessage}</p> : null}
 
@@ -135,13 +172,27 @@ export function OpeningPanel() {
                 {opening.width}×{opening.height}
               </span>
             </div>
-            <button
-              type="button"
-              className="tool-button tool-button-danger"
-              onClick={() => deleteOpening(opening.id)}
-            >
-              删除这个洞口（可撤销）
-            </button>
+            <p className="hint hint-quiet">
+              距左端 {axis ? axis.toAxisX(opening.distance) : opening.distance}mm · 离地{' '}
+              {opening.sillHeight}mm
+            </p>
+            <div className="mode-switch">
+              <button
+                type="button"
+                className="mode-key"
+                data-edit-opening={opening.id}
+                onClick={() => startEdit(opening)}
+              >
+                编辑尺寸
+              </button>
+              <button
+                type="button"
+                className="tool-button tool-button-danger"
+                onClick={() => deleteOpening(opening.id)}
+              >
+                删除（可撤销）
+              </button>
+            </div>
           </div>
         ))}
       </div>

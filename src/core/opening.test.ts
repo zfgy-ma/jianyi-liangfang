@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { elevationAxis, openingsOfWall } from './elevation';
-import { addOpening, removeOpening, validateOpening } from './opening';
+import { addOpening, removeOpening, updateOpening, validateOpening } from './opening';
 import { createOriginPoint, createProject, drawWall } from './project';
 import type { OffsetSide } from './types';
 
@@ -89,5 +89,31 @@ describe('洞口校验与增删', () => {
     ]);
     const cleaned = removeOpening(near.project, far.openingId);
     expect(Object.keys(cleaned.openings)).toHaveLength(1);
+  });
+
+  it('洞口能就地改尺寸：改大成功，改越界报中文原因且不动数据', () => {
+    const data = fixture('right');
+    const added = addOpening(data.project, {
+      wallId: data.wallId,
+      kind: 'window',
+      distance: 1000,
+      width: 1200,
+      height: 1500,
+      sillHeight: 900,
+    });
+    if ('error' in added) throw new Error(added.error);
+
+    const resized = updateOpening(added.project, added.openingId, {
+      width: 1800,
+      height: 1600,
+    });
+    if ('error' in resized) throw new Error(resized.error);
+    expect(resized.project.openings[added.openingId].width).toBe(1800);
+    expect(resized.project.openings[added.openingId].height).toBe(1600);
+
+    const invalid = updateOpening(added.project, added.openingId, { distance: 3500 });
+    expect('error' in invalid && invalid.error).toContain('超出了墙的另一端');
+    // 失败时原数据不动
+    expect(added.project.openings[added.openingId].distance).toBe(1000);
   });
 });

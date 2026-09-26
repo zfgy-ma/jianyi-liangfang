@@ -17,6 +17,7 @@ import { App } from '../App';
 import { Dock } from './Dock';
 import { AxisGizmo } from './AxisGizmo';
 import { FacadeCanvas } from './FacadeCanvas';
+import { OpeningPanel } from './OpeningPanel';
 import { PlanCanvas } from './PlanCanvas';
 import { PlanGrid } from './PlanGrid';
 import { PlanShapes } from './PlanShapes';
@@ -534,6 +535,36 @@ describe('界面结构', () => {
     // A 面 7200 与西块北墙 3550 作为可见墙段标出，转角不并成一条
     expect(html).toContain('>7200<');
     expect(html).toContain('>3550<');
+  });
+
+  it('洞口能改尺寸：编辑把旧值装回字段格，保存后不新增', () => {
+    useProjectStore.getState().replaceProject(createHousePlan());
+    const project = useProjectStore.getState().history.present;
+    const openingId = Object.keys(project.openings)[0];
+    const wallId = project.openings[openingId].wallId;
+    useProjectStore.getState().selectWall(wallId);
+    const view = renderInteractive(<OpeningPanel />);
+    expect(view.html()).toContain(`data-edit-opening="${openingId}"`);
+
+    view.click(`[data-edit-opening="${openingId}"]`);
+    expect(view.html()).toContain(`保存 ${openingId} 的修改`);
+
+    // 用数字键盘输入 1234，填进「宽度」再保存
+    act(() => {
+      ['1', '2', '3', '4'].forEach((digit) =>
+        useProjectStore.getState().pressDigit(digit),
+      );
+    });
+    view.click('[data-fill-field]');
+    view.click('[data-confirm-opening]');
+
+    const after = useProjectStore.getState().history.present;
+    expect(Object.keys(after.openings)).toHaveLength(3);
+    expect(after.openings[openingId].width).toBe(1234);
+    act(() => {
+      useProjectStore.getState().cancelInput();
+    });
+    view.unmount();
   });
 
   it('切到出图页时不渲染操作坞，操作坞不会占屏幕', () => {
