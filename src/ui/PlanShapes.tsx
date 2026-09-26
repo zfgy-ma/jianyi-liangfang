@@ -15,6 +15,8 @@ interface PlanShapesProps {
   draftWallIds: string[];
   /** 是否把墙体挤出高度（三维、等轴测视图） */
   extrude?: boolean;
+  /** 墙面编辑模式：只画选中那面墙的墙面片 */
+  elevationMode?: boolean;
 }
 
 export function PlanShapes({
@@ -24,12 +26,14 @@ export function PlanShapes({
   selectedWallId,
   draftWallIds,
   extrude = false,
+  elevationMode = false,
 }: PlanShapesProps) {
   const draftIds = useMemo(() => new Set(draftWallIds), [draftWallIds]);
   // 俯角小于 12 度时平面已经贴到地平线，只保留挤出后的墙面
-  const showPlan = viewport.pitch >= 12;
-  // 立面视角：直接画墙面片，不再画立体盒子
-  const nearElevation = viewport.pitch < 30;
+  // 平面线条一直画，只有在墙面编辑模式里才让位给墙面片
+  const showPlan = !elevationMode;
+  // 不再按俯仰角切换渲染方式：那样一转视角就会"换一套东西"
+  const nearElevation = elevationMode;
   const lookingAlongX = Math.abs(Math.cos((viewport.yaw * Math.PI) / 180)) < 0.7;
   const faceWalls = nearElevation
     ? Object.values(project.walls).filter((wall) => {
@@ -91,7 +95,7 @@ export function PlanShapes({
 
   return (
     <g>
-      {extrude && !nearElevation
+      {extrude && !elevationMode
         ? bodies.map((body) => {
             const wall = project.walls[body.wallId];
             if (!wall) return null;
@@ -287,6 +291,7 @@ export function PlanShapes({
         conflictIds={conflicts}
         labelHeight={labelHeight}
         showPlan={showPlan}
+        showPlanLabels={viewport.pitch >= 15}
       />
 
       {(showPlan ? Object.values(project.points) : []).map((point) => {

@@ -58,6 +58,8 @@ export function PlanCanvas({
   const notice = useProjectStore((state) => state.notice);
   const elevationFromOutside = useProjectStore((state) => state.elevationFromOutside);
   const toggleElevationSide = useProjectStore((state) => state.toggleElevationSide);
+  const elevationMode = useProjectStore((state) => state.elevationMode);
+  const setElevationMode = useProjectStore((state) => state.setElevationMode);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
@@ -242,6 +244,8 @@ export function PlanCanvas({
   const cycleStandardView = () => {
     const next = nextStandardView(currentViewKey);
     const target = STANDARD_VIEWS[next];
+    // 换标准视图就退出“某面墙的立面”编辑模式
+    setElevationMode(false);
     setViewport(fitViewport(project, size.width, size.height, target.yaw, target.pitch));
     setNotice(`已切到${target.label}`);
   };
@@ -272,6 +276,7 @@ export function PlanCanvas({
     const target = STANDARD_VIEWS[STANDARD_VIEW_OF_DIRECTION[direction]];
     // 从墙的正面看，默认站在室外
     if (!elevationFromOutside) toggleElevationSide();
+    setElevationMode(true);
     // 只把相机转到那一面，场景仍是三维的，中键随时可以继续转
     setViewport(fitViewport(project, size.width, size.height, target.yaw, target.pitch));
     setNotice(
@@ -332,8 +337,9 @@ export function PlanCanvas({
           viewport={viewport}
           activePointId={activePointId}
           selectedWallId={selectedWallId}
-          draftWallIds={roomDraft}
-          extrude={viewport.pitch < 88}
+              draftWallIds={roomDraft}
+              extrude={viewport.pitch < 88}
+              elevationMode={elevationMode}
         />
       </svg>
       <div className="canvas-tools">

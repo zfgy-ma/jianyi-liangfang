@@ -293,8 +293,13 @@ describe('界面结构', () => {
     const east = render(<PlanCanvas preset={{ yaw: 90, pitch: 0 }} />);
     expect(east).toContain('东向');
     expect(east).toContain('plan-canvas');
-    // 立面视角画的是墙面片，不是立体盒子
-    expect(east).toContain('wall-face');
+    // 标准视图不再按角度切换渲染方式：始终是三维盒体量
+    expect(east).toContain('wall-solid');
+    // 选中墙点“立面”才进入墙面模式
+    useProjectStore.getState().setElevationMode(true);
+    const face = render(<PlanCanvas preset={{ yaw: 90, pitch: 0 }} />);
+    expect(face).toContain('wall-face');
+    useProjectStore.getState().setElevationMode(false);
     // 立面视角要能一眼看出从内看还是从外看，并且能切换
     expect(east).toContain('视角：从外看');
     expect(east).toContain('从外看');
@@ -368,8 +373,7 @@ describe('界面结构', () => {
   it('平面与东向视图能导出 SVG，供外部工具复核画面', () => {
     useProjectStore.getState().replaceProject(closedRoom());
     const east = exportSvg('view-east', <PlanCanvas preset={{ yaw: 90, pitch: 0 }} />);
-    // 立面视角画墙面片
-    expect(east).toContain('wall-face');
+    expect(east).toContain('wall-solid');
     const plan = exportSvg('view-plan', <PlanCanvas preset={{ yaw: 0, pitch: 90 }} />);
     expect(plan).toContain('plan-grid');
     const iso = exportSvg(
@@ -382,6 +386,16 @@ describe('界面结构', () => {
     // 四向立面第一张卡就是东立面，一并导出核对比例
     const facade = exportSvg('facade-east', <FacadeCanvas />);
     expect(facade).toContain('facade-length');
+  });
+
+  it('三维旋转时线条不再凭空消失：各个俯仰角都画得出墙体', () => {
+    useProjectStore.getState().replaceProject(closedRoom());
+    useProjectStore.getState().setElevationMode(false);
+    for (const pitch of [80, 45, 25, 12, 8]) {
+      const html = render(<PlanCanvas preset={{ yaw: 35, pitch }} />);
+      expect(html).toContain('wall-solid');
+      expect(html).toContain('wall-line');
+    }
   });
 
   it('上下方向的线条也有居中长度文字', () => {

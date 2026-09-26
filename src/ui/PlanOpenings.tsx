@@ -13,6 +13,8 @@ interface PlanOpeningsProps {
   labelHeight: number;
   /** 接近平视时平面线会塌成一条，直接不画 */
   showPlan?: boolean;
+  /** 极低俯角下长度数字会叠成一团，只隐藏数字保留线条 */
+  showPlanLabels?: boolean;
 }
 
 /** 沿墙推进一段距离后的世界坐标，保留原始高度 */
@@ -59,6 +61,7 @@ export function PlanOpenings({
   conflictIds,
   labelHeight,
   showPlan = true,
+  showPlanLabels = true,
 }: PlanOpeningsProps) {
   const sp = (point: Vec2) => toScreen(viewport, point);
 
@@ -116,15 +119,17 @@ export function PlanOpenings({
                   />
                 );
               })}
-              <text
-                className="wall-length wall-length-ud"
+              {showPlanLabels ? (
+                <text
+                  className="wall-length wall-length-ud"
                 x={middle.x}
                 y={middle.y + fontSizePx * 0.35}
                 fontSize={fontSizePx}
                 textAnchor="middle"
-              >
-                {Math.round(verticalLength)}
-              </text>
+                >
+                  {Math.round(verticalLength)}
+                </text>
+              ) : null}
               <line
                 className="wall-hit-line"
                 data-wall-id={wall.id}
@@ -202,16 +207,18 @@ export function PlanOpenings({
                 y2={sp(along(start, unit, segment.to)).y}
               />
             ))}
-            <text
-              className={`wall-length wall-length-${direction === 'E' || direction === 'W' ? 'ew' : 'ns'}`}
+            {showPlanLabels ? (
+              <text
+                className={`wall-length wall-length-${direction === 'E' || direction === 'W' ? 'ew' : 'ns'}`}
               x={sp(along(start, unit, middle)).x}
               // SVG 里文字是基线定位，往下挪半行才是视觉居中
               y={sp(along(start, unit, middle)).y + labelHeight * viewport.scale * 0.35}
               fontSize={labelHeight * viewport.scale}
               textAnchor="middle"
-            >
-              {Math.round(wallLength)}
-            </text>
+              >
+                {Math.round(wallLength)}
+              </text>
+            ) : null}
             {openings.map((opening) => {
               const left = along(start, unit, opening.distance);
               const right = along(start, unit, opening.distance + opening.width);

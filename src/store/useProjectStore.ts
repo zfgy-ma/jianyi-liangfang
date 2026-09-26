@@ -49,6 +49,8 @@ export interface ProjectState {
   notice: string;
   /** 立面视角：true 表示站在室外往里看 */
   elevationFromOutside: boolean;
+  /** 是否处于"选中某面墙的立面"编辑模式 */
+  elevationMode: boolean;
   setTab: (tab: TabKey) => void;
   togglePlanLock: () => void;
   setDockPanel: (panel: DockPanelKey) => void;
@@ -101,6 +103,7 @@ export interface ProjectState {
   setCamera: (camera: { yaw: number; pitch: number }) => void;
   setNotice: (notice: string) => void;
   toggleElevationSide: () => void;
+  setElevationMode: (active: boolean) => void;
 }
 
 /** 新工程开局：原点固定，起点角只影响录入提示 */
@@ -138,8 +141,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   camera: { yaw: 0, pitch: 90 },
   notice: '',
   elevationFromOutside: true,
+  elevationMode: false,
 
-  setTab: (tab) => set({ tab }),
+  // 换标签页就退出“某面墙的立面”模式，避免状态残留
+  setTab: (tab) => set({ tab, elevationMode: false, notice: '' }),
   togglePlanLock: () => set((state) => ({ planLocked: !state.planLocked })),
   setDockPanel: (panel) => set({ dockPanel: panel }),
   setMode: (mode) => set({ mode, selectedWallId: null, direction: null, digits: '' }),
@@ -396,4 +401,5 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   setNotice: (notice) => set({ notice }),
   toggleElevationSide: () =>
     set((state) => ({ elevationFromOutside: !state.elevationFromOutside })),
+  setElevationMode: (active) => set({ elevationMode: active }),
 }));
