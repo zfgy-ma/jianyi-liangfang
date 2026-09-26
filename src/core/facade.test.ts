@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildFacade, effectiveWallHeight } from './facade';
+import { buildFacade, buildSilhouette, effectiveWallHeight } from './facade';
 import { createOriginPoint, createProject, drawWall } from './project';
 import { splitWallAt } from './split';
 import type { Direction, OffsetSide, Project } from './types';
@@ -37,6 +37,17 @@ function squareWithInnerWall() {
 }
 
 describe('四向立面', () => {
+  it('高度不同的两段墙求并集后，转角处留下台阶而不是被抹平', () => {
+    const strips = buildSilhouette([
+      { wallId: 'a', left: 0, width: 5000, height: 2800 },
+      { wallId: 'b', left: 3000, width: 5000, height: 1800 },
+    ]);
+    expect(strips.map((strip) => [strip.left, strip.width, strip.height])).toEqual([
+      [0, 5000, 2800],
+      [5000, 3000, 1800],
+    ]);
+  });
+
   it('东立面把重叠与相接的墙合并成一条，不再 5000+10000+5000 叠加', () => {
     const { project } = squareWithInnerWall();
     const east = buildFacade(project, 'E');

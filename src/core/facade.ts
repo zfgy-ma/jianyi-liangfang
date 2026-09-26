@@ -58,25 +58,47 @@ export function effectiveWallHeight(project: Project, wall: Wall): number {
   return height;
 }
 
-/** 合并首尾相接或互相重叠的投影区间，取其中最高的墙 */
-export function mergeSpans(rects: FacadeWallRect[]): FacadeWallRect[] {
-  const sorted = [...rects].sort((left, right) => left.left - right.left);
-  const merged: FacadeWallRect[] = [];
-  for (const rect of sorted) {
-    const last = merged[merged.length - 1];
-    if (last && rect.left <= last.left + last.width + 1) {
-      const right = Math.max(last.left + last.width, rect.left + rect.width);
-      merged[merged.length - 1] = {
-        wallId: last.wallId,
-        left: last.left,
-        width: right - last.left,
-        height: Math.max(last.height, rect.height),
-      };
+/**
+ * 立面轮廓：把每面墙的投影矩形求并集。
+ * 按所有端点把横向切成竖条、每条取最高，再把等高且相邻的条合并——
+ * 这样宽度不会叠加，高度变化处会自然留下转角竖线，而不是被压成一个方块。
+ */
+export function buildSilhouette(rects: FacadeWallRect[]): FacadeWallRect[] {
+  if (rects.length === 0) return [];
+  const edges = Array.from(
+    new Set(rects.flatMap((rect) => [rect.left, rect.left + rect.width])),
+  ).sort((left, right) => left - right);
+
+  const strips: FacadeWallRect[] = [];
+  for (let index = 0; index < edges.length - 1; index += 1) {
+    const left = edges[index];
+    const right = edges[index + 1];
+    if (right - left <= 0) continue;
+
+    let height = 0;
+    let wallId = '';
+    for (const rect of rects) {
+      const covers =
+        rect.left <= left + 1e-6 && rect.left + rect.width >= right - 1e-6;
+      if (covers && rect.height > height) {
+        height = rect.height;
+        wallId = rect.wallId;
+      }
+    }
+    if (height <= 0) continue;
+
+    const last = strips[strips.length - 1];
+    if (
+      last &&
+      Math.abs(last.height - height) < 1 &&
+      Math.abs(last.left + last.width - left) < 1
+    ) {
+      last.width = right - last.left;
     } else {
-      merged.push({ ...rect });
+      strips.push({ wallId, left, width: right - left, height });
     }
   }
-  return merged;
+  return strips;
 }
 
 /** 墙体外侧法线：指向室外，也就是墙厚偏移的方向 */
@@ -175,5 +197,12 @@ export function buildFacade(project: Project, direction: ViewDirection): FacadeV
     }
   }
 
-  return { direction, label, totalWidth, maxHeight, walls: mergeSpans(walls), openings };
+  return {
+    direction,
+    label,
+    totalWidth,
+    maxHeight,
+    walls: buildSilhouette(walls),
+    openings,
+  };
 }
