@@ -47,6 +47,8 @@ export interface ProjectState {
   camera: { yaw: number; pitch: number };
   /** 一次性提示，例如"先选一条线条再切立面" */
   notice: string;
+  /** 立面视角：true 表示站在室外往里看 */
+  elevationFromOutside: boolean;
   setTab: (tab: TabKey) => void;
   togglePlanLock: () => void;
   setDockPanel: (panel: DockPanelKey) => void;
@@ -98,6 +100,7 @@ export interface ProjectState {
   toggleRotateMode: () => void;
   setCamera: (camera: { yaw: number; pitch: number }) => void;
   setNotice: (notice: string) => void;
+  toggleElevationSide: () => void;
 }
 
 /** 新工程开局：原点固定，起点角只影响录入提示 */
@@ -134,6 +137,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   rotateMode: false,
   camera: { yaw: 0, pitch: 90 },
   notice: '',
+  elevationFromOutside: true,
 
   setTab: (tab) => set({ tab }),
   togglePlanLock: () => set((state) => ({ planLocked: !state.planLocked })),
@@ -390,4 +394,6 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   setCamera: (camera) => set({ camera }),
   setNotice: (notice) => set({ notice }),
+  toggleElevationSide: () =>
+    set((state) => ({ elevationFromOutside: !state.elevationFromOutside })),
 }));

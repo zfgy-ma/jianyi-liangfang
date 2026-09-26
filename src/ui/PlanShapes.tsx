@@ -28,6 +28,21 @@ export function PlanShapes({
   const draftIds = useMemo(() => new Set(draftWallIds), [draftWallIds]);
   // 俯角小于 12 度时平面已经贴到地平线，只保留挤出后的墙面
   const showPlan = viewport.pitch >= 12;
+  // 立面视角：直接画墙面片，不再画立体盒子
+  const nearElevation = viewport.pitch < 30;
+  const lookingAlongX = Math.abs(Math.cos((viewport.yaw * Math.PI) / 180)) < 0.7;
+  const faceWalls = nearElevation
+    ? Object.values(project.walls).filter((wall) => {
+        if (wall.isHelper) return false;
+        const from = project.points[wall.startPointId];
+        const to = project.points[wall.endPointId];
+        if (!from || !to || from.z !== to.z) return false;
+        // 选中了就只看这一面；没选就显示所有正对观察者的墙面
+        if (selectedWallId) return wall.id === selectedWallId;
+        const runsEastWest = from.y === to.y;
+        return runsEastWest !== lookingAlongX;
+      })
+    : [];
   const bodies = useMemo(() => buildWallBodies(project), [project]);
   const conflicts = useMemo(
     () => new Set(findWallConflicts(project).map((item) => item.wallId)),
@@ -61,7 +76,7 @@ export function PlanShapes({
 
   return (
     <g>
-      {extrude
+      {extrude && !nearElevation
         ? bodies.map((body) => {
             const wall = project.walls[body.wallId];
             if (!wall) return null;
@@ -146,7 +161,7 @@ export function PlanShapes({
                   return (
                     <line
                       key={`${body.wallId}-edge-${index}`}
-                      className="wall-edge"
+                      className="wall-edge wall-edge-vertical"
                       x1={base.x}
                       y1={base.y}
                       x2={top[index].x}
@@ -158,6 +173,102 @@ export function PlanShapes({
             );
           })
         : null}
+      {/* 立面视角：只画当前墙面的片，左右两条竖线是上下方向的蓝色 */}
+      {faceWalls.map((wall) => {
+        const from = project.points[wall.startPointId];
+        const to = project.points[wall.endPointId];
+        if (!from || !to) return null;
+        const height = effectiveWallHeight(project, wall);
+        const axis = axisOf(wall.id);
+        const labelPx = Math.max(labelHeight * viewport.scale, 14);
+        const baseA = toScreen(viewport, from);
+        const baseB = toScreen(viewport, to);
+        const topA = toScreen(viewport, { ...from, z: from.z + height });
+        const topB = toScreen(viewport, { ...to, z: to.z + height });
+        const wallLength = lengthBetween(from, to);
+        return (
+          <g key={`face-${wall.id}`} data-wall-id={wall.id}>
+            <polygon
+              className="wall-face"
+              points={[baseA, baseB, topB, topA]
+                .map((point) => `${point.x},${point.y}`)
+                .join(' ')}
+            />
+            {/* 左右两条竖线：上下方向 → 蓝 */}
+            <line
+              className="wall-line wall-line-vertical"
+              x1={baseA.x}
+              y1={baseA.y}
+              x2={topA.x}
+              y2={topA.y}
+            />
+            <line
+              className="wall-line wall-line-vertical"
+              x1={baseB.x}
+              y1={baseB.y}
+              x2={topB.x}
+              y2={topB.y}
+            />
+            {/* 上下两条横线：东西 / 南北 → 红 / 绿 */}
+            <line
+              className={`wall-line wall-line-${axis}`}
+              x1={baseA.x}
+              y1={baseA.y}
+              x2={baseB.x}
+              y2={baseB.y}
+            />
+            <line
+              className={`wall-line wall-line-${axis}`}
+              x1={topA.x}
+              y1={topA.y}
+              x2={topB.x}
+              y2={topB.y}
+            />
+            {Object.values(project.openings)
+              .filter((opening) => opening.wallId === wall.id)
+              .map((opening) => {
+                const leftRatio = opening.distance / Math.max(wallLength, 1);
+                const rightRatio =
+                  (opening.distance + opening.width) / Math.max(wallLength, 1);
+                const x1 = baseA.x + (baseB.x - baseA.x) * leftRatio;
+                const x2 = baseA.x + (baseB.x - baseA.x) * rightRatio;
+                const yBase = baseA.y + (baseB.y - baseA.y) * leftRatio;
+                const scaleY = Math.abs(topA.y - baseA.y) / Math.max(height, 1);
+                return (
+                  <rect
+                    key={opening.id}
+                    className={
+                      opening.kind === 'window' ? 'elevation-opening' : 'elevation-door'
+                    }
+                    x={Math.min(x1, x2)}
+                    y={yBase - (opening.sillHeight + opening.height) * scaleY}
+                    width={Math.abs(x2 - x1)}
+                    height={opening.height * scaleY}
+                  />
+                );
+              })}
+            <text
+              className={`wall-length wall-length-${axis}`}
+              x={(baseA.x + baseB.x) / 2}
+              y={(baseA.y + baseB.y) / 2 + labelPx * 1.5}
+              fontSize={labelPx}
+              textAnchor="middle"
+            >
+              {Math.round(wallLength)}
+            </text>
+            <text
+              className="wall-length wall-length-vertical"
+              x={topA.x - labelPx * 0.4}
+              y={(topA.y + baseA.y) / 2}
+              fontSize={labelPx}
+              textAnchor="end"
+            >
+              {Math.round(height)}
+            </text>
+          </g>
+        );
+      })}
+
       {showPlan
         ? bodies.map((body) => (
         <polygon

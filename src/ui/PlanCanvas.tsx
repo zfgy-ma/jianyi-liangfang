@@ -56,6 +56,8 @@ export function PlanCanvas({
   const setCamera = useProjectStore((state) => state.setCamera);
   const setNotice = useProjectStore((state) => state.setNotice);
   const notice = useProjectStore((state) => state.notice);
+  const elevationFromOutside = useProjectStore((state) => state.elevationFromOutside);
+  const toggleElevationSide = useProjectStore((state) => state.toggleElevationSide);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
@@ -268,6 +270,8 @@ export function PlanCanvas({
     const run = connectedRun(project, wall.id);
     const view = buildFacade(project, direction);
     const target = STANDARD_VIEWS[STANDARD_VIEW_OF_DIRECTION[direction]];
+    // 从墙的正面看，默认站在室外
+    if (!elevationFromOutside) toggleElevationSide();
     // 只把相机转到那一面，场景仍是三维的，中键随时可以继续转
     setViewport(fitViewport(project, size.width, size.height, target.yaw, target.pitch));
     setNotice(
@@ -275,6 +279,16 @@ export function PlanCanvas({
         ? `已切到${view.label}，这条线所在的整面墙（共 ${run.length} 段）都算进来了`
         : `已切到${view.label}`,
     );
+  };
+
+  /** 立面视角从内看 / 从外看：把相机绕到墙的另一侧 */
+  const flipElevationSide = () => {
+    const next = !elevationFromOutside;
+    toggleElevationSide();
+    setViewport((current) =>
+      fitViewport(project, size.width, size.height, current.yaw + 180, current.pitch),
+    );
+    setNotice(next ? '已切到从内往外看' : '已切到从外往里看');
   };
 
   const scaleLabel =
@@ -288,7 +302,10 @@ export function PlanCanvas({
   );
   const nearStandard =
     Math.abs(viewport.pitch - standardView.pitch) <= 8 && yawGap <= 8;
-  const faceLabel = nearStandard ? standardView.label : '自由视角';
+  const inElevation = isElevationView(currentViewKey);
+  const faceLabel = nearStandard
+    ? `${standardView.label}${inElevation ? (elevationFromOutside ? ' · 从外看' : ' · 从内看') : ''}`
+    : '自由视角';
 
   return (
     <div className="canvas-wrap" ref={containerRef}>
@@ -322,6 +339,16 @@ export function PlanCanvas({
         <button type="button" className="tool-button" onClick={goToWallElevation}>
           立面
         </button>
+        {inElevation ? (
+          <button
+            type="button"
+            className="tool-button"
+            title="点击切换到墙的另一侧"
+            onClick={flipElevationSide}
+          >
+            视角：{elevationFromOutside ? '从外看' : '从内看'}
+          </button>
+        ) : null}
         <button type="button" className="tool-button" onClick={fit}>
           适配视图
         </button>

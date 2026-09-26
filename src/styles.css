@@ -1160,20 +1160,17 @@ body {
 /* 墙的竖直侧面：平视看立面时靠它撑出图形 */
 .wall-side {
   fill: #f4f6f9;
-  stroke-width: 1.5;
-  vector-effect: non-scaling-stroke;
+  stroke: none;
 }
 
-.wall-solid-ew .wall-side {
-  stroke: #c9453a;
-}
-
-.wall-solid-ns .wall-side {
-  stroke: #3c8b4a;
-}
-
-.wall-solid-ud .wall-side {
+.wall-edge.wall-edge-vertical {
   stroke: #2f6fd0;
+}
+
+/* 立面墙面片 */
+.wall-face {
+  fill: #f2f4f7;
+  stroke: none;
 }
 
 .wall-edge {
